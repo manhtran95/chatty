@@ -1,4 +1,4 @@
-module chatty/backend
+module chatty.mtran.io
 
 go 1.21
 
