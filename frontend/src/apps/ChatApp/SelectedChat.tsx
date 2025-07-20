@@ -20,7 +20,7 @@ function SelectedChat({ chatId, messages }: SelectedChatProps) {
   }
 
   return (
-    <div style={{ width: '75%', height: '100vh' }}>
+    <div style={{ width: '75%', height: '80vh' }}>
       <MessageList messages={messages} />
     </div>
   );

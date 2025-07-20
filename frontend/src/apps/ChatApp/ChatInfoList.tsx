@@ -14,7 +14,7 @@ interface ChatInfoListProps {
 
 function ChatInfoList({ chats, selectedChatId, onChatSelect }: ChatInfoListProps) {
   return (
-    <div style={{ width: '25%', borderRight: '1px solid #ddd', height: '100vh', overflowY: 'auto' }}>
+    <div style={{ width: '25%', borderRight: '1px solid #ddd', height: '80vh', overflowY: 'auto' }}>
       {chats.map((chat) => (
         <ChatInfo
           key={chat.id}

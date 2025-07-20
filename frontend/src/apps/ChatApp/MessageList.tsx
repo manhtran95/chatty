@@ -11,7 +11,7 @@ interface MessageListProps {
 
 function MessageList({ messages }: MessageListProps) {
   return (
-    <div style={{ height: '100%', overflowY: 'auto', paddingLeft: '16px', paddingRight: '16px' }}>
+    <div style={{ height: '100%', overflowY: 'auto', paddingLeft: '16px', paddingRight: '16px', display: 'flex', flexDirection: 'column-reverse' }}>
       {messages.map((message, index) => (
         <Message
           key={index}
