@@ -5,7 +5,7 @@ function Home() {
             <p>This is the home page of your chat application.</p>
             <p>Explore the features and enjoy chatting with others!</p>
         </div>
-    );
+    )
 }
 
 export default Home

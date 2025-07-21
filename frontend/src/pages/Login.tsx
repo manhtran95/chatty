@@ -1,38 +1,28 @@
 import React, { useState } from 'react'
-import AuthService from '../services/AuthService'
-import './Signup.css'
 
-interface FormData {
-    name: string
+interface LoginData {
     email: string
     password: string
 }
 
-interface FormErrors {
-    name?: string
+interface LoginErrors {
     email?: string
     password?: string
-    general?: string
 }
 
-const Signup: React.FC = () => {
-    const [formData, setFormData] = useState<FormData>({
-        name: '',
+const Login: React.FC = () => {
+    const [formData, setFormData] = useState<LoginData>({
         email: '',
         password: '',
     })
 
-    const [errors, setErrors] = useState<FormErrors>({})
+    const [errors, setErrors] = useState<LoginErrors>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
     const validateForm = (): boolean => {
-        const newErrors: FormErrors = {}
-
-        if (!formData.name.trim()) {
-            newErrors.name = 'Name is required'
-        }
+        const newErrors: LoginErrors = {}
 
         if (!formData.email.trim()) {
             newErrors.email = 'Email is required'
@@ -42,8 +32,6 @@ const Signup: React.FC = () => {
 
         if (!formData.password) {
             newErrors.password = 'Password is required'
-        } else if (formData.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters long'
         }
 
         setErrors(newErrors)
@@ -57,7 +45,7 @@ const Signup: React.FC = () => {
             [name]: value,
         }))
 
-        if (errors[name as keyof FormErrors]) {
+        if (errors[name as keyof LoginErrors]) {
             setErrors((prev) => ({
                 ...prev,
                 [name]: undefined,
@@ -75,64 +63,19 @@ const Signup: React.FC = () => {
         setIsSubmitting(true)
 
         try {
-            const result = await AuthService.signupPost(formData)
-            console.log('Signup result:', result)
-
-            if (result.success) {
-                // window.location.href = result.redirect
-                console.log('Success, Redirecting to:', result.redirect)
-            } else {
-                if (result.formData.NonFieldErrors) {
-                    setErrors((prev) => ({
-                        ...prev,
-                        general: result.formData.NonFieldErrors.join(', '),
-                    }))
-                }
-
-                if (result.formData.FieldErrors) {
-                    setErrors((prev) => ({
-                        ...prev,
-                        ...result.formData.FieldErrors,
-                    }))
-                }
-            }
+            console.log('Login data:', formData)
         } catch (error) {
-            console.error('Signup failed:', error)
-            setErrors((prev) => ({
-                ...prev,
-                general: 'Signup failed. Please try again.',
-            }))
+            console.error('Login failed:', error)
         } finally {
             setIsSubmitting(false)
         }
     }
 
     return (
-        <div className="signup-container">
-            <div className="signup-form">
-                <h2>Sign Up</h2>
-                {errors.general && (
-                    <div className="error-message general-error">
-                        {errors.general}
-                    </div>
-                )}
+        <div className="login-container">
+            <div className="login-form">
+                <h2>Login</h2>
                 <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="name">Name</label>
-                        <input
-                            type="text"
-                            id="name"
-                            name="name"
-                            value={formData.name}
-                            onChange={handleChange}
-                            className={errors.name ? 'error' : ''}
-                            disabled={isSubmitting}
-                        />
-                        {errors.name && (
-                            <span className="error-message">{errors.name}</span>
-                        )}
-                    </div>
-
                     <div className="form-group">
                         <label htmlFor="email">Email</label>
                         <input
@@ -170,16 +113,16 @@ const Signup: React.FC = () => {
                     </div>
 
                     <button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? 'Signing up...' : 'Sign Up'}
+                        {isSubmitting ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
                 <p>
-                    Already have an account? <a href="/login">Login</a>
+                    Don&apos;t have an account? <a href="/signup">Sign up</a>
                 </p>
             </div>
         </div>
     )
 }
 
-export default Signup
+export default Login

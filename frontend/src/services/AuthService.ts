@@ -1,6 +1,5 @@
-interface APIResponse<T = any> {
+interface APIResponse<T> {
     data?: T
-    errors?: any
     message?: string
     status?: string
 }
@@ -21,7 +20,7 @@ interface FormData {
 
 type SignupResult =
     | { success: true; redirect: string }
-    | { success: false; formData: APIResponse<FormData> }
+    | { success: false; formData: FormData }
 
 class AuthService {
     private baseURL: string
@@ -51,10 +50,16 @@ class AuthService {
                 return { success: true, redirect: '/login' }
             }
 
-            const data: APIResponse<FormData> = await response.json()
+            const _response: APIResponse<FormData> = await response.json()
+            const data: FormData = _response.data || {
+                id: '',
+                name: '',
+                email: '',
+                NonFieldErrors: [],
+                FieldErrors: {},
+            }
 
             return { success: false, formData: data }
-
         } catch (error) {
             console.error('Signup error:', error)
             throw error
