@@ -40,7 +40,7 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 			Message: "Validation failed",
 			Status:  "error",
 		}
-		json.NewEncoder(w).Encode(res)
+		app.writeJSON(w, http.StatusBadRequest, res)
 		return
 	}
 	// Try to create a new user record in the database. If the email already
@@ -54,16 +54,23 @@ func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
 				Message: "Duplicate email",
 				Status:  "error",
 			}
-			json.NewEncoder(w).Encode(res)
+			app.errorLog.Printf("Error inserting user: %v", err)
+			app.writeJSON(w, http.StatusUnprocessableEntity, res)
 			return
 		} else {
-			app.serverError(w, err)
+			app.errorLog.Printf("Error inserting user: %v", err)
+			app.writeJSONServerError(w, http.StatusInternalServerError, err)
 		}
 		return
 	}
 	// Otherwise add a confirmation flash message to the session confirming that
 	// their signup worked.
 	// app.sessionManager.Put(r.Context(), "flash", "Your signup was successful. Please log in.")
-	// And redirect the user to the login page.
-	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+	// Success response — no redirect, just JSON
+	res := response.APIResponse[any]{
+		Data:    nil,
+		Message: "Signup successful",
+		Status:  "success",
+	}
+	json.NewEncoder(w).Encode(res)
 }

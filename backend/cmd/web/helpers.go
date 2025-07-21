@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 
+	"chatty.mtran.io/internal/response"
 	"github.com/go-playground/form/v4"
 )
 
@@ -58,4 +60,22 @@ func (app *application) clientError(w http.ResponseWriter, status int) {
 // the user.
 func (app *application) notFound(w http.ResponseWriter) {
 	app.clientError(w, http.StatusNotFound)
+}
+
+func (app *application) writeJSON(w http.ResponseWriter, status int, data any) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(data)
+}
+
+func (app *application) writeJSONServerError(w http.ResponseWriter, status int, err error) {
+	trace := fmt.Sprintf("%s\n%s", err.Error(), debug.Stack())
+	app.errorLog.Output(2, trace)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(response.APIResponse[any]{
+		Data:    nil,
+		Message: "Internal server error",
+		Status:  "error",
+	})
 }
