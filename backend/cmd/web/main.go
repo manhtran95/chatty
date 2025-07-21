@@ -2,13 +2,17 @@ package main
 
 import (
 	"database/sql"
+
+	_ "github.com/lib/pq"
+
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"chatty.mtran.io/internal/models"
+	"github.com/go-playground/form/v4"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -19,8 +23,10 @@ import (
 )
 
 type application struct {
-	errorLog *log.Logger
-	infoLog  *log.Logger
+	errorLog    *log.Logger
+	infoLog     *log.Logger
+	users       *models.UserModel
+	formDecoder *form.Decoder
 }
 
 func main() {
@@ -42,11 +48,15 @@ func main() {
 	}
 	defer db.Close()
 
-	migrateDB()
+	migrateDB(errorLog)
+
+	formDecoder := form.NewDecoder()
 
 	app := &application{
-		errorLog: errorLog,
-		infoLog:  infoLog,
+		errorLog:    errorLog,
+		infoLog:     infoLog,
+		users:       &models.UserModel{DB: db},
+		formDecoder: formDecoder,
 	}
 
 	srv := &http.Server{
@@ -60,14 +70,14 @@ func main() {
 	errorLog.Fatal(err)
 }
 
-func migrateDB() {
+func migrateDB(errorLog *log.Logger) {
 	m, err := migrate.New("file://migrations", fmt.Sprintf("%s?sslmode=disable", os.Getenv("DATABASE_URL")))
 	if err != nil {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 	// Migrate all the way up ...
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-		log.Fatal(err)
+		errorLog.Fatal(err)
 	}
 }
 
@@ -85,24 +95,3 @@ func openDB() (*sql.DB, error) {
 
 	return db, nil
 }
-
-/*
-func openDB2() (*pgxpool.Pool, error) {
-	dbpool, err := pgxpool.New(context.Background(), os.Getenv("DATABASE_URL"))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
-		os.Exit(1)
-	}
-	defer dbpool.Close()
-
-	var greeting string
-	err = dbpool.QueryRow(context.Background(), "select 'Hello, world!'").Scan(&greeting)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-		os.Exit(1)
-	}
-
-	fmt.Println(greeting)
-	return dbpool, nil
-}
-*/
