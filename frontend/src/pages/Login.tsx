@@ -1,4 +1,7 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import './Signup.css'
+import { useAuth } from '../modules/auth/AuthContext'
 
 interface LoginData {
     email: string
@@ -8,9 +11,12 @@ interface LoginData {
 interface LoginErrors {
     email?: string
     password?: string
+    general?: string
 }
 
 const Login: React.FC = () => {
+    const { login } = useAuth()!
+    const navigate = useNavigate()
     const [formData, setFormData] = useState<LoginData>({
         email: '',
         password: '',
@@ -63,18 +69,44 @@ const Login: React.FC = () => {
         setIsSubmitting(true)
 
         try {
-            console.log('Login data:', formData)
+            const result = await login(formData.email, formData.password)
+            console.log(`Login result:`)
+            console.log(result)
+            if (result.success) {
+                // Login successful - user and access token are set in AuthContext
+                console.log('Login successful')
+                // Redirect to ChatApp
+                navigate('/')
+            } else {
+                // Handle login failure - result contains error information
+                console.log('Login failed:', result.data)
+                if (result.data.nonFieldErrors) {
+                    setErrors((prev) => ({
+                        ...prev,
+                        general: result.data.nonFieldErrors!.join(', '),
+                    }))
+                }
+            }
         } catch (error) {
             console.error('Login failed:', error)
+            setErrors((prev) => ({
+                ...prev,
+                general: 'Login failed. Please try again.',
+            }))
         } finally {
             setIsSubmitting(false)
         }
     }
 
     return (
-        <div className="login-container">
-            <div className="login-form">
+        <div className="signup-container">
+            <div className="signup-form">
                 <h2>Login</h2>
+                {errors.general && (
+                    <div className="error-message general-error">
+                        {errors.general}
+                    </div>
+                )}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
                         <label htmlFor="email">Email</label>

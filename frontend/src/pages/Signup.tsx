@@ -82,17 +82,17 @@ const Signup: React.FC = () => {
                 // window.location.href = result.redirect
                 console.log('Success, Redirecting to:', result.redirect)
             } else {
-                if (result.formData.NonFieldErrors) {
+                if (result.formData.nonFieldErrors) {
                     setErrors((prev) => ({
                         ...prev,
-                        general: result.formData.NonFieldErrors.join(', '),
+                        general: result.formData.nonFieldErrors.join(', '),
                     }))
                 }
 
-                if (result.formData.FieldErrors) {
+                if (result.formData.fieldErrors) {
                     setErrors((prev) => ({
                         ...prev,
-                        ...result.formData.FieldErrors,
+                        ...result.formData.fieldErrors,
                     }))
                 }
             }

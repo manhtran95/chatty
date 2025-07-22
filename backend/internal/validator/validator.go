@@ -11,8 +11,8 @@ var EmailRX = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9
 // Define a new Validator type which contains a map of validation errors for our
 // form fields.
 type Validator struct {
-	NonFieldErrors []string
-	FieldErrors    map[string]string
+	NonFieldErrors []string          `json:"nonFieldErrors,omitempty"`
+	FieldErrors    map[string]string `json:"fieldErrors,omitempty"`
 }
 
 // Valid() returns true if the FieldErrors map doesn't contain any entries.

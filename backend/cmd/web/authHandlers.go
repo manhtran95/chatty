@@ -4,7 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"os"
+	"strconv"
+	"time"
 
+	"chatty.mtran.io/internal/auth"
 	"chatty.mtran.io/internal/models"
 	"chatty.mtran.io/internal/response"
 	"chatty.mtran.io/internal/validator"
@@ -15,6 +19,71 @@ type userSignupForm struct {
 	Email               string `form:"email"`
 	Password            string `form:"password"`
 	validator.Validator `form:"-"`
+}
+
+type userLoginForm struct {
+	Email    string `form:"email"`
+	Password string `form:"password"`
+}
+
+type LoginResponse struct {
+	validator.Validator
+	UserInfo    *models.UserInfo `json:"userInfo,omitempty"`
+	AccessToken string           `json:"accessToken,omitempty"`
+}
+
+func (app *application) userLoginPost(w http.ResponseWriter, r *http.Request) {
+	// Decode the form data into the userLoginForm struct.
+	var form userLoginForm
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+	// Check whether the credentials are valid. If they're not, add a generic
+	// non-field error message and re-display the login page.
+	userInfo, err := app.users.Authenticate(form.Email, form.Password)
+	loginResponse := LoginResponse{
+		UserInfo: userInfo,
+	}
+	if err != nil {
+		if errors.Is(err, models.ErrInvalidCredentials) {
+			loginResponse.AddNonFieldError("Email or password is incorrect")
+			res := response.APIResponse[LoginResponse]{
+				Data:    loginResponse,
+				Message: "Login failed",
+				Status:  "error",
+			}
+			app.writeJSON(w, http.StatusUnprocessableEntity, res)
+		} else {
+			app.writeJSONServerError(w, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	// JWT token generation
+	accessToken := auth.GenerateAccessToken(userInfo.ID.String())
+	loginResponse.AccessToken = accessToken
+	exp, _ := strconv.Atoi(os.Getenv("JWT_REFRESH_TOKEN_EXPIRE_DAYS"))
+	refreshToken := auth.GenerateRefreshToken(userInfo.ID.String())
+
+	// Set refresh token as secure cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		HttpOnly: true,
+		Secure:   true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   int((time.Duration(exp) * 24 * time.Hour).Seconds()),
+	})
+
+	res := response.APIResponse[LoginResponse]{
+		Data:    loginResponse,
+		Message: "Login successful",
+		Status:  "success",
+	}
+	json.NewEncoder(w).Encode(res)
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {

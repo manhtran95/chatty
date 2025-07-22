@@ -19,6 +19,11 @@ type User struct {
 	HashedPassword []byte
 	Created        time.Time
 }
+type UserInfo struct {
+	ID    uuid.UUID `json:"id"`
+	Name  string    `json:"name"`
+	Email string    `json:"email"`
+}
 
 // Define a new UserModel type which wraps a database connection pool.
 type UserModel struct {
@@ -52,9 +57,34 @@ VALUES ($1, $2, $3)`
 // We'll use the Authenticate method to verify whether a user exists with
 // the provided email address and password. This will return the relevant
 // user ID if they do.
-func (m *UserModel) Authenticate(email, password string) (uuid.UUID, error) {
-	u, _ := uuid.Parse("00000000-0000-0000-0000-000000000000")
-	return u, nil
+func (m *UserModel) Authenticate(email, password string) (*UserInfo, error) {
+	// Retrieve the id and hashed password associated with the given email. If
+	// no matching email exists we return the ErrInvalidCredentials error.
+	userInfo := UserInfo{
+		Email: email,
+	}
+	var hashedPassword []byte
+	stmt := "SELECT id, name, hashed_password FROM users WHERE email = $1"
+	err := m.DB.QueryRow(stmt, email).Scan(&userInfo.ID, &userInfo.Name, &hashedPassword)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrInvalidCredentials
+		} else {
+			return nil, err
+		}
+	}
+	// Check whether the hashed password and plain-text password provided match.
+	// If they don't, we return the ErrInvalidCredentials error.
+	err = bcrypt.CompareHashAndPassword(hashedPassword, []byte(password))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, ErrInvalidCredentials
+		} else {
+			return nil, err
+		}
+	}
+	
+	return &userInfo, nil
 }
 
 // We'll use the Exists method to check if a user exists with a specific ID.

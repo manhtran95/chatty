@@ -1,0 +1,17 @@
+meta {
+  name: Login
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{host}}/user/login
+  body: formUrlEncoded
+  auth: inherit
+}
+
+body:form-urlencoded {
+  name: Manh Tran
+  email: manhnus2@gmail.com
+  password: 12345678
+}
