@@ -40,9 +40,24 @@ func GenerateRefreshToken(userID string) string {
 	return token
 }
 
-func ParseToken(tokenStr string) (*jwt.Token, error) {
+func VerifyAndParseToken(tokenStr string) (*jwt.Token, error) {
 	jwtSecret := []byte(os.Getenv("JWT_SECRET"))
 	return jwt.Parse(tokenStr, func(token *jwt.Token) (any, error) {
 		return jwtSecret, nil
 	})
+}
+
+func ValidateRefreshToken(tokenStr string) (string, error) {
+	token, err := VerifyAndParseToken(tokenStr)
+	if err != nil {
+		return "", err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if userID, ok := claims["sub"].(string); ok {
+			return userID, nil
+		}
+	}
+
+	return "", jwt.ErrSignatureInvalid
 }

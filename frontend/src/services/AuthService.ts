@@ -1,4 +1,5 @@
 import { StatusCodes } from 'http-status-codes'
+import { config } from '../config'
 
 interface APIResponse<T> {
     data: T
@@ -54,14 +55,29 @@ export interface LoginResult {
     }
 }
 
+interface RefreshResponse {
+    accessToken: string
+}
+
+interface RefreshResult {
+    success: boolean
+    data: {
+        accessToken: string
+    }
+}
+
+interface LogoutResult {
+    success: boolean
+}
+
 class AuthService {
     private baseURL: string
 
     constructor() {
-        this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+        this.baseURL = config.api.baseUrl
     }
 
-    async signupPost(userData: SignupData): Promise<SignupResult> {
+    async signup(userData: SignupData): Promise<SignupResult> {
         try {
             const formData = new URLSearchParams()
             Object.entries(userData).forEach(([key, value]) => {
@@ -94,7 +110,7 @@ class AuthService {
         }
     }
 
-    async loginPost(loginData: LoginData): Promise<LoginResult> {
+    async login(loginData: LoginData): Promise<LoginResult> {
         try {
             const formData = new URLSearchParams()
             Object.entries(loginData).forEach(([key, value]) => {
@@ -105,6 +121,7 @@ class AuthService {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
+                credentials: "include",
                 body: formData.toString(),
             })
 
@@ -132,6 +149,52 @@ class AuthService {
         } catch (error) {
             console.error('Login error:', error)
             throw error
+        }
+    }
+
+    async refresh(): Promise<RefreshResult> {
+        const response = await fetch(`${this.baseURL}/user/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: "include",
+        })
+        const _response: APIResponse<RefreshResponse> = await response.json()
+        if (response.status == StatusCodes.OK)
+            return {
+                success: true,
+                data: {
+                    accessToken: _response.data.accessToken,
+                },
+            }
+        else
+            return {
+                success: false,
+                data: {
+                    accessToken: '',
+                },
+            }
+    }
+
+    async logout(): Promise<LogoutResult> {
+        try {
+            const response = await fetch(`${this.baseURL}/user/logout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: "include",
+            })
+
+            if (response.status === StatusCodes.OK) {
+                return { success: true }
+            } else {
+                return { success: false }
+            }
+        } catch (error) {
+            console.error('Logout error:', error)
+            return { success: false }
         }
     }
 }

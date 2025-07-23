@@ -4,110 +4,23 @@ import ChatInfoList from './ChatInfoList'
 import SelectedChat from './SelectedChat'
 import type { ChatData } from './types'
 import { receiveNewMessage } from './utils/commandHandlers'
-import { useAuthStatus } from '../../modules/auth/AuthContext'
+import { useAuth } from '../../modules/auth/AuthContext'
+import './ChatApp.css'
+import { stubInitData } from './utils/data'
 
 function ChatApp() {
-    const { isAuthenticated, user } = useAuthStatus()
+    const auth = useAuth()
     const navigate = useNavigate()
+
+    const { isAuthenticated, user, logout } = auth!
     console.log(`user: ${user}`)
     // states
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
     const [chatListData, setChatListData] = useState<ChatData[] | null>(null)
+    const [showUserDropdown, setShowUserDropdown] = useState(false)
 
     // stub data
-    const stubInitData = [
-        {
-            id: '1',
-            name: 'Chat0',
-            userList: [
-                {
-                    id: '3a092631-cbcc-4ab1-a1ae-d617da0050d4',
-                    username: 'carol50',
-                },
-                {
-                    id: '693fe40f-3a17-4689-b51b-da057980b990',
-                    username: 'eve68',
-                },
-            ],
-            lastMessage: 'See you soon.',
-            messages: [
-                {
-                    senderName: 'eve68',
-                    content: 'See you soon.',
-                },
-                {
-                    senderName: 'eve68',
-                    content: 'Check this out.',
-                },
-                {
-                    senderName: 'carol50',
-                    content: 'Any updates?',
-                },
-                {
-                    senderName: 'eve68',
-                    content: 'Hey!',
-                },
-            ],
-        },
-        {
-            id: '2',
-            name: 'Chat1',
-            userList: [
-                {
-                    id: 'c78c1108-600c-4c99-8ec7-187e0b7f0150',
-                    username: 'alice86',
-                },
-                {
-                    id: '950bdece-46c7-4b08-9e10-573bf0d4382e',
-                    username: 'dave91',
-                },
-            ],
-            lastMessage: "How's it going?",
-            messages: [
-                {
-                    senderName: 'alice86',
-                    content: "How's it going?",
-                },
-                {
-                    senderName: 'dave91',
-                    content: 'Thanks!',
-                },
-                {
-                    senderName: 'dave91',
-                    content: "Let's meet tomorrow.",
-                },
-            ],
-        },
-        {
-            id: '3',
-            name: 'Chat2',
-            userList: [
-                {
-                    id: '05ec6324-a3b8-476d-a474-6617fcf00d63',
-                    username: 'eve32',
-                },
-                {
-                    id: '57d856fe-7996-4a3f-814d-38cc91ac3c13',
-                    username: 'bob86',
-                },
-            ],
-            lastMessage: "What's up?",
-            messages: [
-                {
-                    senderName: 'eve32',
-                    content: "What's up?",
-                },
-                {
-                    senderName: 'bob86',
-                    content: 'Thanks!',
-                },
-                {
-                    senderName: 'eve32',
-                    content: 'Good morning!',
-                },
-            ],
-        },
-    ]
+
 
     console.log(`selectedChatId: ${selectedChatId}`)
 
@@ -115,9 +28,9 @@ function ChatApp() {
     useEffect(() => {
         setChatListData(stubInitData)
         // Optional cleanup
-        return () => {
-            console.log('Component unmounted')
-        }
+        // return () => {
+        //     console.log('Component unmounted')
+        // }
     }, []) // Empty dependency array = run once
 
     // deduced data
@@ -137,6 +50,11 @@ function ChatApp() {
                 ?.messages || []
             : []
 
+    const handleLogout = () => {
+        logout()
+        navigate('/login')
+    }
+
     if (!isAuthenticated) {
         return (
             <div className="center-container">
@@ -153,7 +71,32 @@ function ChatApp() {
 
     return (
         <>
-            <div style={{ display: 'flex', height: '80vh' }}>
+            {/* Top Bar */}
+            <div className="top-bar">
+                <div className="user-dropdown-container">
+                    <button
+                        onClick={() => setShowUserDropdown(!showUserDropdown)}
+                        className="user-dropdown-button"
+                        onBlur={() => setTimeout(() => setShowUserDropdown(false), 150)}
+                    >
+                        <span>Hi, {user?.name || 'User'}</span>
+                        <span className="dropdown-arrow">▼</span>
+                    </button>
+
+                    {showUserDropdown && (
+                        <div className="user-dropdown-menu">
+                            <button
+                                onClick={handleLogout}
+                                className="user-dropdown-item"
+                            >
+                                Logout
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="chat-container">
                 <ChatInfoList
                     chats={chatInfoList}
                     selectedChatId={selectedChatId}

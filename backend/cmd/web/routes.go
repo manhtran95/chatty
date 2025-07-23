@@ -13,5 +13,6 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/user/signup", app.userSignup)
 	mux.HandleFunc("/user/login", app.userLogin)
 	mux.HandleFunc("/user/refresh", app.refreshToken)
-	return app.logRequest(withCORS(mux))
+	mux.HandleFunc("/user/logout", app.userLogout)
+	return app.logRequest(app.logResponse(withCORS(mux)))
 }

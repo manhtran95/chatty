@@ -10,6 +10,7 @@ A modern full-stack chat application built with React TypeScript frontend and Go
 - CORS support for cross-origin requests
 - Docker containerization
 - Responsive design
+- Centralized configuration system
 
 ## Tech Stack
 

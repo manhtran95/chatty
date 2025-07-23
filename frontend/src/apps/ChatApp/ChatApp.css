@@ -3,3 +3,72 @@
     border-bottom: 1px solid #eee;
     text-align: left;
 }
+
+/* Top Bar Styles */
+.top-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    position: relative;
+}
+
+.user-dropdown-container {
+    position: relative;
+}
+
+.user-dropdown-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-dropdown-button:hover {
+    background-color: #e9ecef;
+}
+
+.user-dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: white;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    min-width: 120px;
+}
+
+.user-dropdown-item {
+    width: 100%;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    color: #dc3545;
+}
+
+.user-dropdown-item:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown-arrow {
+    font-size: 12px;
+}
+
+/* Chat Container */
+.chat-container {
+    display: flex;
+    height: calc(80vh - 60px);
+}

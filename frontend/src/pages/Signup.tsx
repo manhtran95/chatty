@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import AuthService from '../services/AuthService'
 import './Signup.css'
 import { useNavigate } from 'react-router-dom'
+import { config } from '../config'
 
 interface FormData {
     name: string
@@ -44,8 +45,10 @@ const Signup: React.FC = () => {
 
         if (!formData.password) {
             newErrors.password = 'Password is required'
-        } else if (formData.password.length < 8) {
-            newErrors.password = 'Password must be at least 8 characters long'
+        } else if (formData.password.length < config.auth.passwordMinLength) {
+            newErrors.password = `Password must be at least ${config.auth.passwordMinLength} characters long`
+        } else if (formData.password.length > config.auth.passwordMaxLength) {
+            newErrors.password = `Password must be no more than ${config.auth.passwordMaxLength} characters long`
         }
 
         setErrors(newErrors)
@@ -77,7 +80,7 @@ const Signup: React.FC = () => {
         setIsSubmitting(true)
 
         try {
-            const result = await AuthService.signupPost(formData)
+            const result = await AuthService.signup(formData)
             console.log('Signup result:', result)
 
             if (result.success) {
