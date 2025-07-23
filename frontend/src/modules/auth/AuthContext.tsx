@@ -13,6 +13,7 @@ interface UserInfo {
 type AuthContextType = {
     user: UserInfo | null
     accessToken: string
+    isAuthenticated: boolean
     login: (email: string, password: string) => Promise<LoginResult>
     logout: () => Promise<void>
 }
@@ -26,6 +27,9 @@ interface AuthProviderProps {
 export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [user, setUser] = useState<UserInfo | null>(null)
     const [accessToken, setAccessToken] = useState('')
+
+    // Computed property for authentication status
+    const isAuthenticated = !!(user && accessToken)
 
     // useEffect(() => {
     //     const tryRefresh = async () => {
@@ -67,10 +71,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, accessToken, login, logout }}>
+        <AuthContext.Provider value={{ user, accessToken, isAuthenticated, login, logout }}>
             {children}
         </AuthContext.Provider>
     )
 }
 
 export const useAuth = () => useContext(AuthContext)
+
+// Custom hook for authentication status
+export const useAuthStatus = () => {
+    const auth = useAuth()
+    if (!auth) {
+        throw new Error('useAuthStatus must be used within an AuthProvider')
+    }
+
+    return {
+        isAuthenticated: auth.isAuthenticated,
+        user: auth.user,
+        accessToken: auth.accessToken
+    }
+}

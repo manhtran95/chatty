@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ChatInfoList from './ChatInfoList'
 import SelectedChat from './SelectedChat'
 import type { ChatData } from './types'
 import { receiveNewMessage } from './utils/commandHandlers'
+import { useAuthStatus } from '../../modules/auth/AuthContext'
 
 function ChatApp() {
+    const { isAuthenticated, user } = useAuthStatus()
+    const navigate = useNavigate()
+    console.log(`user: ${user}`)
     // states
     const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
     const [chatListData, setChatListData] = useState<ChatData[] | null>(null)
@@ -118,10 +123,10 @@ function ChatApp() {
     // deduced data
     const chatInfoList = chatListData
         ? chatListData.map((chat) => ({
-              id: chat.id,
-              name: chat.name,
-              lastMessage: chat.lastMessage || 'No messages',
-          }))
+            id: chat.id,
+            name: chat.name,
+            lastMessage: chat.lastMessage || 'No messages',
+        }))
         : []
     const selectedChatMessages: Array<{
         senderName: string
@@ -129,8 +134,22 @@ function ChatApp() {
     }> =
         selectedChatId !== null && chatListData
             ? chatListData.find((chat) => chat.id === selectedChatId)
-                  ?.messages || []
+                ?.messages || []
             : []
+
+    if (!isAuthenticated) {
+        return (
+            <div className="center-container">
+                <p>Please log in to access the chat application.</p>
+                <button
+                    className="btn-primary"
+                    onClick={() => navigate('/login')}
+                >
+                    Go to Login
+                </button>
+            </div>
+        )
+    }
 
     return (
         <>

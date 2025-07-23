@@ -144,13 +144,18 @@ const Login: React.FC = () => {
                         )}
                     </div>
 
-                    <button type="submit" disabled={isSubmitting}>
+                    <button
+                        type="submit"
+                        className="btn-primary"
+                        disabled={isSubmitting}
+                        style={{ width: '100%', marginTop: '1rem' }}
+                    >
                         {isSubmitting ? 'Logging in...' : 'Login'}
                     </button>
                 </form>
 
                 <p>
-                    Don&apos;t have an account? <a href="/signup">Sign up</a>
+                    Don&apos;t have an account? <a href="/signup" className="link-primary">Sign up</a>
                 </p>
             </div>
         </div>

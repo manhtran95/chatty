@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import AuthService from '../services/AuthService'
 import './Signup.css'
+import { useNavigate } from 'react-router-dom'
 
 interface FormData {
     name: string
@@ -16,6 +17,7 @@ interface FormErrors {
 }
 
 const Signup: React.FC = () => {
+    const navigate = useNavigate()
     const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
@@ -79,20 +81,20 @@ const Signup: React.FC = () => {
             console.log('Signup result:', result)
 
             if (result.success) {
-                // window.location.href = result.redirect
                 console.log('Success, Redirecting to:', result.redirect)
+                navigate(result.redirect || '/login')
             } else {
-                if (result.formData.nonFieldErrors) {
+                if (result.formData?.nonFieldErrors) {
                     setErrors((prev) => ({
                         ...prev,
-                        general: result.formData.nonFieldErrors.join(', '),
+                        general: result.formData?.nonFieldErrors.join(', '),
                     }))
                 }
 
-                if (result.formData.fieldErrors) {
+                if (result.formData?.fieldErrors) {
                     setErrors((prev) => ({
                         ...prev,
-                        ...result.formData.fieldErrors,
+                        ...result.formData?.fieldErrors,
                     }))
                 }
             }
@@ -169,13 +171,18 @@ const Signup: React.FC = () => {
                         )}
                     </div>
 
-                    <button type="submit" disabled={isSubmitting}>
+                    <button
+                        type="submit"
+                        className="btn-primary"
+                        disabled={isSubmitting}
+                        style={{ width: '100%', marginTop: '1rem' }}
+                    >
                         {isSubmitting ? 'Signing up...' : 'Sign Up'}
                     </button>
                 </form>
 
                 <p>
-                    Already have an account? <a href="/login">Login</a>
+                    Already have an account? <a href="/login" className="link-primary">Login</a>
                 </p>
             </div>
         </div>

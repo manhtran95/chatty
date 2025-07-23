@@ -12,15 +12,25 @@ interface SignupData {
     password: string
 }
 
+interface SignupResponse {
+    form: {
+        nonFieldErrors: string[]
+        fieldErrors: { [key: string]: string }
+    },
+    redirect: boolean
+}
+
+interface SignupResult {
+    success: boolean
+    formData?: {
+        nonFieldErrors: string[]
+        fieldErrors: { [key: string]: string }
+    }
+    redirect?: string
+}
 interface LoginData {
     email: string
     password: string
-}
-
-// from backend, Capitalize the first letter of each key
-interface SignupResponseData {
-    NonFieldErrors: string[]
-    FieldErrors: { [key: string]: string }
 }
 interface UserInfo {
     id: string
@@ -34,16 +44,6 @@ interface LoginResponse {
     userInfo?: UserInfo
     accessToken?: string
 }
-
-type SignupResult =
-    | { success: true; redirect: string }
-    | {
-          success: false
-          formData: {
-              nonFieldErrors: string[]
-              fieldErrors: { [key: string]: string }
-          }
-      }
 
 export interface LoginResult {
     success: boolean
@@ -79,13 +79,13 @@ class AuthService {
                 return { success: true, redirect: '/login' }
             }
 
-            const _response: APIResponse<SignupResponseData> =
+            const _response: APIResponse<SignupResponse> =
                 await response.json()
             return {
                 success: false,
                 formData: {
-                    nonFieldErrors: _response.data.NonFieldErrors || [],
-                    fieldErrors: _response.data.FieldErrors || {},
+                    nonFieldErrors: _response.data.form.nonFieldErrors || [],
+                    fieldErrors: _response.data.form.fieldErrors || {},
                 },
             }
         } catch (error) {
