@@ -1,4 +1,5 @@
 import MessageList from './MessageList'
+import MessageInput from './MessageInput'
 
 interface MessageData {
     senderName: string
@@ -29,8 +30,21 @@ function SelectedChat({ chatId, messages }: SelectedChatProps) {
     }
 
     return (
-        <div style={{ width: '75%', height: '80vh' }}>
-            <MessageList messages={messages} />
+        <div
+            style={{
+                width: '75%',
+                height: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+            }}
+        >
+            <div style={{ flex: 1, overflow: 'auto' }}>
+                <MessageList messages={messages} />
+            </div>
+            <MessageInput
+                chatId={chatId}
+                onMessageSent={() => console.log('Message sent successfully')}
+            />
         </div>
     )
 }

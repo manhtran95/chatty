@@ -27,6 +27,7 @@ type application struct {
 	infoLog     *log.Logger
 	users       *models.UserModel
 	formDecoder *form.Decoder
+	wsHandler   *WebSocketHandler
 }
 
 func main() {
@@ -52,11 +53,19 @@ func main() {
 
 	formDecoder := form.NewDecoder()
 
+	// Initialize WebSocket handler with client origin from env
+	clientOrigin := os.Getenv("CLIENT_ORIGIN")
+	if clientOrigin == "" {
+		clientOrigin = "http://localhost:5173" // default fallback
+	}
+	wsHandler := NewWebSocketHandler(clientOrigin)
+
 	app := &application{
 		errorLog:    errorLog,
 		infoLog:     infoLog,
 		users:       &models.UserModel{DB: db},
 		formDecoder: formDecoder,
+		wsHandler:   wsHandler,
 	}
 
 	srv := &http.Server{

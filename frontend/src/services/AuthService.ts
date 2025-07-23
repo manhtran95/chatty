@@ -17,7 +17,7 @@ interface SignupResponse {
     form: {
         nonFieldErrors: string[]
         fieldErrors: { [key: string]: string }
-    },
+    }
     redirect: boolean
 }
 
@@ -95,8 +95,7 @@ class AuthService {
                 return { success: true, redirect: '/login' }
             }
 
-            const _response: APIResponse<SignupResponse> =
-                await response.json()
+            const _response: APIResponse<SignupResponse> = await response.json()
             return {
                 success: false,
                 formData: {
@@ -121,7 +120,7 @@ class AuthService {
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                credentials: "include",
+                credentials: 'include',
                 body: formData.toString(),
             })
 
@@ -158,7 +157,7 @@ class AuthService {
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: "include",
+            credentials: 'include',
         })
         const _response: APIResponse<RefreshResponse> = await response.json()
         if (response.status == StatusCodes.OK)
@@ -184,7 +183,7 @@ class AuthService {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: "include",
+                credentials: 'include',
             })
 
             if (response.status === StatusCodes.OK) {

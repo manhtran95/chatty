@@ -2,8 +2,12 @@
 export const config = {
     // Authentication settings
     auth: {
-        passwordMinLength: parseInt(import.meta.env.VITE_PASSWORD_MIN_LENGTH || '8'),
-        passwordMaxLength: parseInt(import.meta.env.VITE_PASSWORD_MAX_LENGTH || '128'),
+        passwordMinLength: parseInt(
+            import.meta.env.VITE_PASSWORD_MIN_LENGTH || '8'
+        ),
+        passwordMaxLength: parseInt(
+            import.meta.env.VITE_PASSWORD_MAX_LENGTH || '128'
+        ),
     },
 
     // API settings
@@ -20,4 +24,4 @@ export const config = {
 } as const
 
 // Type for the config object
-export type Config = typeof config 
+export type Config = typeof config

@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import AuthService from '../services/AuthService'
 import './Signup.css'
 import { useNavigate } from 'react-router-dom'
 import { config } from '../config'
+import { useAuth } from '../modules/auth/AuthContext'
 
 interface FormData {
     name: string
@@ -19,6 +20,7 @@ interface FormErrors {
 
 const Signup: React.FC = () => {
     const navigate = useNavigate()
+    const { isAuthenticated } = useAuth()!
     const [formData, setFormData] = useState<FormData>({
         name: '',
         email: '',
@@ -27,6 +29,13 @@ const Signup: React.FC = () => {
 
     const [errors, setErrors] = useState<FormErrors>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/')
+        }
+    }, [isAuthenticated, navigate])
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -112,6 +121,11 @@ const Signup: React.FC = () => {
         }
     }
 
+    // Don't render if already authenticated (will redirect)
+    if (isAuthenticated) {
+        return null
+    }
+
     return (
         <div className="signup-container">
             <div className="signup-form">
@@ -185,7 +199,10 @@ const Signup: React.FC = () => {
                 </form>
 
                 <p>
-                    Already have an account? <a href="/login" className="link-primary">Login</a>
+                    Already have an account?{' '}
+                    <a href="/login" className="link-primary">
+                        Login
+                    </a>
                 </p>
             </div>
         </div>

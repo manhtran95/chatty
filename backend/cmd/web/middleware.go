@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"net"
 	"net/http"
 	"time"
 )
@@ -27,6 +30,14 @@ func (rw *responseWriter) WriteHeader(statusCode int) {
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	rw.body = append(rw.body, b...)
 	return rw.ResponseWriter.Write(b)
+}
+
+// Implement http.Hijacker interface for WebSocket support
+func (rw *responseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if hijacker, ok := rw.ResponseWriter.(http.Hijacker); ok {
+		return hijacker.Hijack()
+	}
+	return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
 }
 
 func (app *application) logResponse(next http.Handler) http.Handler {
@@ -57,19 +68,21 @@ func (app *application) logResponse(next http.Handler) http.Handler {
 	})
 }
 
-func withCORS(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
+func withCORS(clientOrigin string) func(http.Handler) http.Handler {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", clientOrigin)
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		// Handle preflight request
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+			// Handle preflight request
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
 
-		h.ServeHTTP(w, r)
-	})
+			h.ServeHTTP(w, r)
+		})
+	}
 }

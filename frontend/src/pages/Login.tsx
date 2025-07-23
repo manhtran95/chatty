@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Signup.css'
 import { useAuth } from '../modules/auth/AuthContext'
@@ -15,7 +15,7 @@ interface LoginErrors {
 }
 
 const Login: React.FC = () => {
-    const { login } = useAuth()!
+    const { login, isAuthenticated } = useAuth()!
     const navigate = useNavigate()
     const [formData, setFormData] = useState<LoginData>({
         email: '',
@@ -24,6 +24,13 @@ const Login: React.FC = () => {
 
     const [errors, setErrors] = useState<LoginErrors>({})
     const [isSubmitting, setIsSubmitting] = useState(false)
+
+    // Redirect if already authenticated
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/')
+        }
+    }, [isAuthenticated, navigate])
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -98,6 +105,11 @@ const Login: React.FC = () => {
         }
     }
 
+    // Don't render if already authenticated (will redirect)
+    if (isAuthenticated) {
+        return null
+    }
+
     return (
         <div className="signup-container">
             <div className="signup-form">
@@ -155,7 +167,10 @@ const Login: React.FC = () => {
                 </form>
 
                 <p>
-                    Don&apos;t have an account? <a href="/signup" className="link-primary">Sign up</a>
+                    Don&apos;t have an account?{' '}
+                    <a href="/signup" className="link-primary">
+                        Sign up
+                    </a>
                 </p>
             </div>
         </div>

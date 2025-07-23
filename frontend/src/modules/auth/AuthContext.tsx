@@ -36,22 +36,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     useEffect(() => {
         const tryRefresh = async () => {
             try {
-                const res = await AuthService.refresh();
+                const res = await AuthService.refresh()
                 if (res.success) {
-                    setAccessToken(res.data.accessToken);
+                    setAccessToken(res.data.accessToken)
                 } else {
-                    setAccessToken('');
+                    setAccessToken('')
                 }
             } catch {
-                setAccessToken('');
+                setAccessToken('')
             }
-        };
-        tryRefresh();
-        const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
         }
-    }, []);
+        tryRefresh()
+        const savedUser = localStorage.getItem(USER_STORAGE_KEY)
+        if (savedUser) {
+            setUser(JSON.parse(savedUser))
+        }
+    }, [])
 
     const login = async (
         email: string,
@@ -63,7 +63,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.log(result)
         if (result.success) {
             if (result.data.userInfo) {
-                localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.data.userInfo))
+                localStorage.setItem(
+                    USER_STORAGE_KEY,
+                    JSON.stringify(result.data.userInfo)
+                )
                 setUser(result.data.userInfo)
             }
             if (result.data.accessToken) {
@@ -99,7 +102,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, accessToken, isAuthenticated, login, logout }}>
+        <AuthContext.Provider
+            value={{ user, accessToken, isAuthenticated, login, logout }}
+        >
             {children}
         </AuthContext.Provider>
     )
@@ -117,6 +122,6 @@ export const useAuthStatus = () => {
     return {
         isAuthenticated: auth.isAuthenticated,
         user: auth.user,
-        accessToken: auth.accessToken
+        accessToken: auth.accessToken,
     }
 }
