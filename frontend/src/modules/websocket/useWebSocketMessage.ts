@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useWebSocket } from './WebSocketContext'
-import type { WebSocketMessage } from '../../services/WebSocketService'
+import type { WebSocketMessage } from '../../services/WebSocketTypes'
 
 interface UseWebSocketMessageOptions {
     onMessage?: (data: WebSocketMessage) => void

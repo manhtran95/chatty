@@ -12,8 +12,17 @@ import {
     isWebSocketConnected,
     addMessageHandler,
     clearMessageHandlers,
-    type WebSocketMessage,
 } from '../../services/WebSocketService'
+import type {
+    WebSocketMessage,
+    TypedWebSocketMessage,
+    ClientSendMessage,
+    ClientReceiveMessage,
+    ClientCreateChat,
+    ClientReceiveChat,
+    ClientRequestPrevMessages,
+    ClientReceivePrevMessages,
+} from '../../services/WebSocketTypes'
 import { useAuth } from '../auth/AuthContext'
 
 interface WebSocketContextType {
@@ -22,6 +31,10 @@ interface WebSocketContextType {
     disconnect: () => boolean
     sendMessage: (message: WebSocketMessage) => boolean
     addMessageHandler: (handler: (data: WebSocketMessage) => void) => () => void
+    // Typed message sending functions
+    sendClientMessage: (chatId: string, content: string) => boolean
+    createChat: (name: string, participants: string[]) => boolean
+    requestPrevMessages: (chatId: string, offset: number, limit: number) => boolean
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
@@ -67,6 +80,41 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         return addMessageHandler(handler)
     }
 
+    // Typed message sending functions
+    const sendClientMessage = (chatId: string, content: string): boolean => {
+        const message: ClientSendMessage = {
+            type: 'ClientSendMessage',
+            data: {
+                chatId,
+                content,
+            },
+        }
+        return sendMessage(message)
+    }
+
+    const createChat = (name: string, participants: string[]): boolean => {
+        const message: ClientCreateChat = {
+            type: 'ClientCreateChat',
+            data: {
+                name,
+                participants,
+            },
+        }
+        return sendMessage(message)
+    }
+
+    const requestPrevMessages = (chatId: string, offset: number, limit: number): boolean => {
+        const message: ClientRequestPrevMessages = {
+            type: 'ClientRequestPrevMessages',
+            data: {
+                chatId,
+                offset,
+                limit,
+            },
+        }
+        return sendMessage(message)
+    }
+
     // Auto-connect when user is authenticated
     useEffect(() => {
         if (
@@ -96,6 +144,9 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 disconnect,
                 sendMessage: sendMessageToServer,
                 addMessageHandler: addMessageHandlerToContext,
+                sendClientMessage,
+                createChat,
+                requestPrevMessages,
             }}
         >
             {children}

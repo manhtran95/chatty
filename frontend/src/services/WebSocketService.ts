@@ -1,12 +1,9 @@
 // WebSocketService.ts
+import type { WebSocketMessage } from './WebSocketTypes'
+
 let socket: WebSocket | null = null
 let isConnected = false
 let messageHandlers: Array<(data: WebSocketMessage) => void> = []
-
-export interface WebSocketMessage {
-    type: string
-    data: unknown
-}
 
 export function connectWebSocket(token: string): Promise<boolean> {
     return new Promise((resolve) => {

@@ -1,4 +1,4 @@
-import './ChatApp.css'
+import './styles/ChatApp.css'
 
 interface MessageProps {
     senderName: string

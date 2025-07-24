@@ -6,12 +6,9 @@ interface MessageInputProps {
     onMessageSent?: () => void
 }
 
-export default function MessageInput({
-    chatId,
-    onMessageSent,
-}: MessageInputProps) {
+export default function MessageInput({ chatId, onMessageSent }: MessageInputProps) {
     const [message, setMessage] = useState('')
-    const { sendMessage, isConnected } = useWebSocket()
+    const { sendClientMessage, isConnected } = useWebSocket()
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -20,15 +17,8 @@ export default function MessageInput({
             return
         }
 
-        // Send message via WebSocket
-        const success = sendMessage({
-            type: 'send_message',
-            data: {
-                chatId,
-                content: message.trim(),
-                timestamp: new Date().toISOString(),
-            },
-        })
+        // Send message via WebSocket using typed function
+        const success = sendClientMessage(chatId, message.trim())
 
         if (success) {
             setMessage('')
@@ -44,9 +34,7 @@ export default function MessageInput({
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder={
-                    isConnected ? 'Type your message...' : 'Connecting...'
-                }
+                placeholder={isConnected ? "Type your message..." : "Connecting..."}
                 disabled={!isConnected}
                 className="message-input"
             />

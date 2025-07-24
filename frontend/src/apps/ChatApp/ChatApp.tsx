@@ -6,14 +6,19 @@ import type { ChatData } from './types'
 import { receiveNewMessage } from './utils/commandHandlers'
 import { useAuth } from '../../modules/auth/AuthContext'
 import { useWebSocket } from '../../modules/websocket/WebSocketContext'
-import type { WebSocketMessage } from '../../services/WebSocketService'
-import './ChatApp.css'
+import type {
+    WebSocketMessage,
+    ClientReceiveMessage,
+    ClientReceiveChat,
+    ClientReceivePrevMessages
+} from '../../services/WebSocketTypes'
+import './styles/ChatApp.css'
 import { stubInitData } from './utils/data'
 
 function ChatApp() {
     const auth = useAuth()
     const navigate = useNavigate()
-    const { isConnected, addMessageHandler } = useWebSocket()
+    const { isConnected, addMessageHandler, requestPrevMessages } = useWebSocket()
 
     const { isAuthenticated, user, logout } = auth!
     console.log(`user: ${user}`)
@@ -34,21 +39,29 @@ function ChatApp() {
         const removeHandler = addMessageHandler((message: WebSocketMessage) => {
             console.log('Received WebSocket message:', message)
 
-            // Handle different message types
+            // Handle different message types with proper typing
             switch (message.type) {
-                case 'new_message':
+                case 'ClientReceiveMessage':
+                    const receiveMsg = message as ClientReceiveMessage
                     receiveNewMessage(
-                        message.data as {
-                            chatId: string
-                            senderName: string
-                            content: string
+                        {
+                            chatId: receiveMsg.data.chatId,
+                            senderName: receiveMsg.data.senderName,
+                            content: receiveMsg.data.content,
                         },
                         setChatListData
                     )
                     break
-                case 'chat_update':
-                    // Handle chat updates
-                    console.log('Chat updated:', message.data)
+                case 'ClientReceiveChat':
+                    const receiveChat = message as ClientReceiveChat
+                    console.log('Received new chat:', receiveChat.data)
+                    // TODO: Handle new chat creation
+                    break
+                case 'ClientReceivePrevMessages':
+                    const receivePrevMsg = message as ClientReceivePrevMessages
+                    console.log('Received previous messages for chat:', receivePrevMsg.data.chatId)
+                    console.log('Has more messages:', receivePrevMsg.data.hasMore)
+                    // TODO: Handle received previous messages
                     break
                 default:
                     console.log('Unknown message type:', message.type)
@@ -61,28 +74,36 @@ function ChatApp() {
         }
     }, [isConnected, addMessageHandler])
 
+    // Request previous messages when chat is selected
+    useEffect(() => {
+        if (selectedChatId && isConnected) {
+            // Request first 20 messages (offset 0, limit 20)
+            requestPrevMessages(selectedChatId, 0, 20)
+        }
+    }, [selectedChatId, isConnected, requestPrevMessages])
+
     // User not logged in, return
-    if (!isAuthenticated) {
-        return (
-            <div className="center-container">
-                <p>Please log in to access the chat application.</p>
-                <button
-                    className="btn-primary"
-                    onClick={() => navigate('/login')}
-                >
-                    Go to Login
-                </button>
-            </div>
-        )
-    }
+    // if (!isAuthenticated) {
+    //     return (
+    //         <div className="center-container">
+    //             <p>Please log in to access the chat application.</p>
+    //             <button
+    //                 className="btn-primary"
+    //                 onClick={() => navigate('/login')}
+    //             >
+    //                 Go to Login
+    //             </button>
+    //         </div>
+    //     )
+    // }
 
     // deduced data
     const chatInfoList = chatListData
         ? chatListData.map((chat) => ({
-              id: chat.id,
-              name: chat.name,
-              lastMessage: chat.lastMessage || 'No messages',
-          }))
+            id: chat.id,
+            name: chat.name,
+            lastMessage: chat.lastMessage || 'No messages',
+        }))
         : []
     const selectedChatMessages: Array<{
         senderName: string
@@ -90,7 +111,7 @@ function ChatApp() {
     }> =
         selectedChatId !== null && chatListData
             ? chatListData.find((chat) => chat.id === selectedChatId)
-                  ?.messages || []
+                ?.messages || []
             : []
 
     const handleLogout = () => {
