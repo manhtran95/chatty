@@ -14,15 +14,8 @@ interface SelectedChatProps {
 function SelectedChat({ chatId, messages }: SelectedChatProps) {
     if (chatId === null) {
         return (
-            <div
-                style={{
-                    width: '75%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <div style={{ color: '#666' }}>
+            <div className="w-3/4 flex items-center justify-center">
+                <div className="text-gray-600">
                     Select a chat to view messages
                 </div>
             </div>
@@ -30,15 +23,8 @@ function SelectedChat({ chatId, messages }: SelectedChatProps) {
     }
 
     return (
-        <div
-            style={{
-                width: '75%',
-                height: '80vh',
-                display: 'flex',
-                flexDirection: 'column',
-            }}
-        >
-            <div style={{ flex: 1, overflow: 'auto' }}>
+        <div className="w-3/4 h-[80vh] flex flex-col">
+            <div className="flex-1 overflow-auto">
                 <MessageList messages={messages} />
             </div>
             <MessageInput

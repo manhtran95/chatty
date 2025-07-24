@@ -1,3 +1,5 @@
+import { chatClasses } from '../../utils/tailwindClasses'
+
 interface ChatInfoProps {
     name: string
     lastMessage: string
@@ -8,19 +10,15 @@ interface ChatInfoProps {
 function ChatInfo({ name, lastMessage, isSelected, onClick }: ChatInfoProps) {
     return (
         <div
-            style={{
-                padding: '12px',
-                borderBottom: '1px solid #eee',
-                cursor: 'pointer',
-                backgroundColor: isSelected ? '#f0f8ff' : 'white',
-                textAlign: 'left',
-            }}
+            className={isSelected ? chatClasses.itemSelected : chatClasses.itemHover}
             onClick={onClick}
         >
-            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
+            <div className="font-bold mb-1 text-gray-900">
                 {name}
             </div>
-            <div style={{ color: '#666', fontSize: '14px' }}>{lastMessage}</div>
+            <div className="text-gray-600 text-sm truncate">
+                {lastMessage}
+            </div>
         </div>
     )
 }

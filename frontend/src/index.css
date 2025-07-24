@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
     font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
@@ -94,7 +96,7 @@ h1 {
 }
 
 /* Default button styles (for non-primary buttons) */
-button {
+/* button {
     border-radius: 8px;
     border: 1px solid transparent;
     padding: 0.6em 1.2em;
@@ -113,7 +115,14 @@ button:hover {
 button:focus,
 button:focus-visible {
     outline: 4px auto -webkit-focus-ring-color;
+} */
+
+
+
+.bg-opacity-50 {
+    background-color: rgba(0, 0, 0, 0.5);
 }
+
 
 @media (prefers-color-scheme: light) {
     :root {
@@ -125,14 +134,12 @@ button:focus-visible {
         color: #213547;
     }
 
-    /* Override default button styles for light mode */
-    button {
+    /* button {
         background-color: #f9f9f9;
         color: #213547;
-    }
+    } */
 
-    /* Ensure btn-primary maintains its styling in light mode */
-    .btn-primary {
+    /* .btn-primary {
         background-color: #646cff;
         color: white;
     }
@@ -140,5 +147,5 @@ button:focus-visible {
     .btn-primary:hover {
         background-color: #535bf2;
         color: white;
-    }
-}
+    } */
+} 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import './Signup.css'
 import { useAuth } from '../modules/auth/AuthContext'
+import { buttonClasses, inputClasses, formClasses, tagClasses } from '../utils/tailwindClasses'
 
 interface LoginData {
     email: string
@@ -111,46 +111,55 @@ const Login: React.FC = () => {
     }
 
     return (
-        <div className="signup-container">
-            <div className="signup-form">
-                <h2>Login</h2>
+        <div className="flex justify-center items-center min-h-screen p-8">
+            <div className="bg-white/5 backdrop-blur-md p-8 rounded-xl border border-white/10 w-full max-w-md shadow-2xl">
+                <div className="text-center mb-6">
+                    <h2 className="text-center mb-2 text-2xl font-semibold">
+                        Login
+                    </h2>
+                    <span className={tagClasses.info}>Welcome back!</span>
+                </div>
                 {errors.general && (
-                    <div className="error-message general-error">
+                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-sm">
                         {errors.general}
                     </div>
                 )}
                 <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label htmlFor="email">Email</label>
+                    <div className={formClasses.group}>
+                        <label htmlFor="email" className={formClasses.label}>
+                            Email
+                        </label>
                         <input
                             type="email"
                             id="email"
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            className={errors.email ? 'error' : ''}
+                            className={`w-full ${errors.email ? inputClasses.error : inputClasses.base}`}
                             disabled={isSubmitting}
                         />
                         {errors.email && (
-                            <span className="error-message">
+                            <span className={formClasses.error}>
                                 {errors.email}
                             </span>
                         )}
                     </div>
 
-                    <div className="form-group">
-                        <label htmlFor="password">Password</label>
+                    <div className={formClasses.group}>
+                        <label htmlFor="password" className={formClasses.label}>
+                            Password
+                        </label>
                         <input
                             type="password"
                             id="password"
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
-                            className={errors.password ? 'error' : ''}
+                            className={`w-full ${errors.password ? inputClasses.error : inputClasses.base}`}
                             disabled={isSubmitting}
                         />
                         {errors.password && (
-                            <span className="error-message">
+                            <span className={formClasses.error}>
                                 {errors.password}
                             </span>
                         )}
@@ -158,17 +167,22 @@ const Login: React.FC = () => {
 
                     <button
                         type="submit"
-                        className="btn-primary"
+                        className={`w-full mt-6 ${buttonClasses.primary}`}
                         disabled={isSubmitting}
-                        style={{ width: '100%', marginTop: '1rem' }}
                     >
-                        {isSubmitting ? 'Logging in...' : 'Login'}
+                        {isSubmitting ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <span className={tagClasses.warning}>Processing...</span>
+                            </span>
+                        ) : (
+                            'Login'
+                        )}
                     </button>
                 </form>
 
-                <p>
+                <p className="text-center mt-6 text-sm">
                     Don&apos;t have an account?{' '}
-                    <a href="/signup" className="link-primary">
+                    <a href="/signup" className={tagClasses.primary}>
                         Sign up
                     </a>
                 </p>

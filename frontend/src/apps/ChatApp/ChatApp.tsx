@@ -12,6 +12,7 @@ import type {
     ClientReceiveChat,
     ClientReceivePrevMessages
 } from '../../services/WebSocketTypes'
+import { buttonClasses, statusClasses, layoutClasses } from '../../utils/tailwindClasses'
 import './styles/ChatApp.css'
 import { stubInitData } from './utils/data'
 
@@ -88,7 +89,7 @@ function ChatApp() {
     //         <div className="center-container">
     //             <p>Please log in to access the chat application.</p>
     //             <button
-    //                 className="btn-primary"
+    //                 className={buttonClasses.primary}
     //                 onClick={() => navigate('/login')}
     //             >
     //                 Go to Login
@@ -122,24 +123,24 @@ function ChatApp() {
     return (
         <>
             {/* Top Bar */}
-            <div className="top-bar">
-                <div className="user-dropdown-container">
+            <div className={`${layoutClasses.flexBetween} p-4 bg-gray-50 border-b border-gray-200`}>
+                <div className="relative">
                     <button
                         onClick={() => setShowUserDropdown(!showUserDropdown)}
-                        className="user-dropdown-button"
+                        className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                         onBlur={() =>
                             setTimeout(() => setShowUserDropdown(false), 150)
                         }
                     >
                         <span>Hi, {user?.name || 'User'}</span>
-                        <span className="dropdown-arrow">▼</span>
+                        <span className="text-xs">▼</span>
                     </button>
 
                     {showUserDropdown && (
-                        <div className="user-dropdown-menu">
+                        <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-50 min-w-32">
                             <button
                                 onClick={handleLogout}
-                                className="user-dropdown-item"
+                                className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-gray-50"
                             >
                                 Logout
                             </button>
@@ -147,16 +148,14 @@ function ChatApp() {
                     )}
                 </div>
                 {/* WebSocket connection status */}
-                <div className="connection-status">
-                    <span
-                        className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}
-                    >
+                <div className="flex items-center">
+                    <span className={isConnected ? statusClasses.connected : statusClasses.disconnected}>
                         {isConnected ? '🟢 Connected' : '🔴 Disconnected'}
                     </span>
                 </div>
             </div>
 
-            <div className="chat-container">
+            <div className="flex h-[80vh]">
                 <ChatInfoList
                     chats={chatInfoList}
                     selectedChatId={selectedChatId}
@@ -167,7 +166,7 @@ function ChatApp() {
                     messages={selectedChatMessages}
                 />
             </div>
-            <div>
+            <div className="p-4">
                 <button
                     onClick={() =>
                         receiveNewMessage(
@@ -179,6 +178,7 @@ function ChatApp() {
                             setChatListData
                         )
                     }
+                    className={buttonClasses.small}
                 >
                     Receive new mess testing
                 </button>

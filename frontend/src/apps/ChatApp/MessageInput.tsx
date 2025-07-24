@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useWebSocket } from '../../modules/websocket/WebSocketContext'
+import { buttonClasses, inputClasses } from '../../utils/tailwindClasses'
 
 interface MessageInputProps {
     chatId: string
@@ -29,19 +30,19 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
     }
 
     return (
-        <form onSubmit={handleSubmit} className="message-input-form">
+        <form onSubmit={handleSubmit} className="flex gap-3 p-4 border-t border-gray-200 bg-gray-50">
             <input
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={isConnected ? "Type your message..." : "Connecting..."}
                 disabled={!isConnected}
-                className="message-input"
+                className={`flex-1 ${isConnected ? inputClasses.base : inputClasses.disabled}`}
             />
             <button
                 type="submit"
                 disabled={!message.trim() || !isConnected}
-                className="send-button"
+                className={buttonClasses.small}
             >
                 Send
             </button>

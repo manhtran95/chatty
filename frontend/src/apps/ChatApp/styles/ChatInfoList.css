@@ -1,0 +1,56 @@
+/* Create Chat Header */
+.create-chat-header {
+    padding: 16px;
+    border-bottom: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+}
+
+.create-chat-button {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.create-chat-button:hover {
+    background-color: #0056b3;
+}
+
+.create-chat-button:active {
+    background-color: #004085;
+}
+
+.create-chat-icon {
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1;
+}
+
+/* Chat List Container */
+.chat-list-container {
+    flex: 1;
+    overflow-y: auto;
+    background-color: white;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .create-chat-button {
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .create-chat-icon {
+        font-size: 16px;
+    }
+}
