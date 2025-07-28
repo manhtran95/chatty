@@ -1,57 +1,45 @@
 package main
 
+// TODO: JWT validation is not implemented yet
+
 import (
 	"fmt"
 	"net/http"
 
-	"github.com/gorilla/websocket"
+	"chatty.mtran.io/internal/auth"
+	ws "chatty.mtran.io/internal/websocket"
+	gorilla "github.com/gorilla/websocket"
 )
 
 type WebSocketHandler struct {
-	upgrader websocket.Upgrader
+	upgrader gorilla.Upgrader
+	app      *application
 }
 
-func NewWebSocketHandler(clientOrigin string) *WebSocketHandler {
+func NewWebSocketHandler(clientOrigin string, app *application) *WebSocketHandler {
 	return &WebSocketHandler{
-		upgrader: websocket.Upgrader{
+		upgrader: gorilla.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return r.Header.Get("Origin") == clientOrigin
 			},
 		},
+		app: app,
 	}
 }
 
 func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// ✅ Extract token (e.g., from query param)
-	token := r.URL.Query().Get("token")
-	if !isValidToken(token) {
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
+	userID := r.Context().Value(auth.UserIDKey).(string)
 
-	// ✅ Upgrade to WebSocket
+	// Upgrade to WebSocket
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		fmt.Println("Upgrade error:", err)
 		return
 	}
-	defer conn.Close()
 
-	// Handle incoming messages
-	for {
-		_, msg, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println("Read error:", err)
-			break
-		}
-		fmt.Printf("Received: %s\n", msg)
+	// Create new client
+	client := ws.NewClient(conn, userID, h.app.hub)
 
-		// Echo back
-		conn.WriteMessage(websocket.TextMessage, msg)
-	}
-}
-
-func isValidToken(token string) bool {
-	// Decode and validate JWT here
-	return token != "" // replace with real JWT verification
+	// Start the client
+	client.Start()
 }

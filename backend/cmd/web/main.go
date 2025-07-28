@@ -12,6 +12,7 @@ import (
 	"os"
 
 	"chatty.mtran.io/internal/models"
+	"chatty.mtran.io/internal/websocket"
 	"github.com/go-playground/form/v4"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -26,8 +27,10 @@ type application struct {
 	errorLog    *log.Logger
 	infoLog     *log.Logger
 	users       *models.UserModel
+	chats       *models.ChatModel
+	messages    *models.MessageModel
 	formDecoder *form.Decoder
-	wsHandler   *WebSocketHandler
+	hub         *websocket.Hub
 }
 
 func main() {
@@ -53,19 +56,23 @@ func main() {
 
 	formDecoder := form.NewDecoder()
 
-	// Initialize WebSocket handler with client origin from env
-	clientOrigin := os.Getenv("CLIENT_ORIGIN")
-	if clientOrigin == "" {
-		clientOrigin = "http://localhost:5173" // default fallback
-	}
-	wsHandler := NewWebSocketHandler(clientOrigin)
+	// Initialize WebSocket hub
+	hub := websocket.NewHub()
+	go hub.Run() // Start the hub in a goroutine
+
+	// Initialize models
+	userModel := &models.UserModel{DB: db}
+	chatModel := &models.ChatModel{DB: db}
+	messageModel := &models.MessageModel{DB: db}
 
 	app := &application{
 		errorLog:    errorLog,
 		infoLog:     infoLog,
-		users:       &models.UserModel{DB: db},
+		users:       userModel,
+		chats:       chatModel,
+		messages:    messageModel,
 		formDecoder: formDecoder,
-		wsHandler:   wsHandler,
+		hub:         hub,
 	}
 
 	srv := &http.Server{
