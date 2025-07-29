@@ -17,13 +17,9 @@ const (
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("access_token")
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
-		}
+		accessToken := r.URL.Query().Get("access_token")
 
-		token, err := VerifyAndParseToken(cookie.Value)
+		token, err := VerifyAndParseToken(accessToken)
 		if err != nil || !token.Valid {
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return

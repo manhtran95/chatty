@@ -3,33 +3,32 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-)
 
-// Message represents a WebSocket message
-type Message struct {
-	Type      string `json:"type"`
-	SenderID  string `json:"sender_id"`
-	ChatID    string `json:"chat_id"`
-	Content   string `json:"content"`
-	Timestamp int64  `json:"timestamp"`
-	Data      any    `json:"data,omitempty"`
-}
+	"chatty.mtran.io/internal/models"
+	"github.com/google/uuid"
+)
 
 // Hub manages all WebSocket connections
 type Hub struct {
-	UserClients map[string]*Client // user ID -> client (one client per user)
-	Register    chan *Client
-	Unregister  chan *Client
-	Broadcast   chan *Message
+	UserClients  map[uuid.UUID]*Client // user ID -> client (one client per user)
+	Register     chan *Client
+	Unregister   chan *Client
+	Broadcast    chan *Message
+	ChatModel    *models.ChatModel    // Add ChatModel for database operations
+	UserModel    *models.UserModel    // Add UserModel for user validation
+	MessageModel *models.MessageModel // Add MessageModel for message operations
 }
 
 // NewHub creates a new WebSocket hub
-func NewHub() *Hub {
+func NewHub(chatModel *models.ChatModel, userModel *models.UserModel, messageModel *models.MessageModel) *Hub {
 	return &Hub{
-		UserClients: make(map[string]*Client),
-		Register:    make(chan *Client),
-		Unregister:  make(chan *Client),
-		Broadcast:   make(chan *Message),
+		UserClients:  make(map[uuid.UUID]*Client),
+		Register:     make(chan *Client),
+		Unregister:   make(chan *Client),
+		Broadcast:    make(chan *Message),
+		ChatModel:    chatModel,
+		UserModel:    userModel,
+		MessageModel: messageModel,
 	}
 }
 
@@ -49,6 +48,7 @@ func (h *Hub) Run() {
 			log.Printf("Client unregistered: User %s", client.UserID)
 
 		case message := <-h.Broadcast:
+			log.Printf("h.Broadcast channel received message: %v", message)
 			h.handleMessage(message)
 		}
 	}
@@ -57,15 +57,96 @@ func (h *Hub) Run() {
 // handleMessage processes incoming messages
 func (h *Hub) handleMessage(message *Message) {
 	switch message.Type {
-	case "chat_message":
-		h.broadcastToChat(message)
-	case "join_chat":
-		h.handleJoinChat(message)
-	case "leave_chat":
-		h.handleLeaveChat(message)
+	case CLIENT_SEND_MESSAGE:
+		h.handleSendMessage(message)
+	case CLIENT_CREATE_CHAT:
+		h.handleCreateChat(message)
+	case CLIENT_REQUEST_CHAT_HISTORY:
+		h.handleRequestChatHistory(message)
 	default:
 		log.Printf("Unknown message type: %s", message.Type)
 	}
+}
+
+// handleSendMessage processes a message sent by a client
+func (h *Hub) handleSendMessage(message *Message) {
+	log.Printf("handleSendMessage: %v", message)
+	// TODO: Save message to database
+	// TODO: Broadcast to all users in the chat
+
+	// For now, just broadcast to all clients
+	h.broadcastToChat(message)
+}
+
+// handleCreateChat processes a chat creation request
+func (h *Hub) handleCreateChat(message *Message) {
+	log.Printf("handleCreateChat")
+	// Type assert to get the chat data
+	chatData, ok := message.Data.(*ClientCreateChatData)
+	if !ok {
+		log.Printf("Invalid chat creation data")
+		return
+	}
+
+	// check if participantIDs are valid
+	if len(chatData.ParticipantEmails) < 2 {
+		log.Printf("Cannot create a chat with less than 2 participants")
+		return
+	}
+
+	userInfos, err := h.UserModel.UserInfosByEmails(chatData.ParticipantEmails)
+	if err != nil {
+		log.Printf("Error checking if user emails exist: %v", err)
+		return
+	}
+
+	// Create chat in database
+	chat, err := h.ChatModel.InsertChat(chatData.Name)
+	if err != nil {
+		log.Printf("Error creating chat: %v", err)
+		// TODO: Send error response to client
+		return
+	}
+
+	userIDs := make([]uuid.UUID, 0, len(userInfos))
+	for _, userInfo := range userInfos {
+		userIDs = append(userIDs, userInfo.ID)
+	}
+	err = h.ChatModel.AddUsersToChat(chat.ID, userIDs)
+	if err != nil {
+		log.Printf("Error adding participants to chat: %v", err)
+		return
+	}
+	log.Printf("Created chat: %s with ID: %s", chat.Name, chat.ID)
+
+	wsUserInfos := make([]UserInfo, 0, len(userInfos))
+	for _, userInfo := range userInfos {
+		wsUserInfos = append(wsUserInfos, UserInfo{
+			ID:    userInfo.ID.String(),
+			Email: userInfo.Email,
+			Name:  userInfo.Name,
+		})
+	}
+	// Create response message
+	responseData := &ClientReceiveChatData{
+		ChatID:           chat.ID.String(),
+		Name:             chat.Name,
+		ParticipantInfos: wsUserInfos,
+	}
+
+	responseMessage := NewMessage(responseData)
+
+	for _, userID := range userIDs {
+		h.SendToUser(userID, responseMessage)
+	}
+}
+
+// handleRequestChatHistory processes a request for chat history
+func (h *Hub) handleRequestChatHistory(message *Message) {
+	// TODO: Fetch chat history from database
+	// TODO: Send messages to requesting user
+
+	log.Printf("User requested chat history")
 }
 
 // broadcastToChat sends a message to all users in a specific chat
@@ -81,18 +162,6 @@ func (h *Hub) broadcastToChat(message *Message) {
 	}
 }
 
-// handleJoinChat handles when a user joins a chat
-func (h *Hub) handleJoinChat(message *Message) {
-	log.Printf("User %s joined chat %s", message.SenderID, message.ChatID)
-	// You can implement chat-specific logic here
-}
-
-// handleLeaveChat handles when a user leaves a chat
-func (h *Hub) handleLeaveChat(message *Message) {
-	log.Printf("User %s left chat %s", message.SenderID, message.ChatID)
-	// You can implement chat-specific logic here
-}
-
 // serializeMessage converts a Message to JSON bytes
 func (h *Hub) serializeMessage(message *Message) []byte {
 	data, err := json.Marshal(message)
@@ -104,18 +173,19 @@ func (h *Hub) serializeMessage(message *Message) []byte {
 }
 
 // GetClientByUserID returns a client by user ID
-func (h *Hub) GetClientByUserID(userID string) (*Client, bool) {
+func (h *Hub) GetClientByUserID(userID uuid.UUID) (*Client, bool) {
 	client, exists := h.UserClients[userID]
 	return client, exists
 }
 
 // SendToUser sends a message to a specific user
-func (h *Hub) SendToUser(userID string, message *Message) {
-	if client, exists := h.GetClientByUserID(userID); exists {
+func (h *Hub) SendToUser(userID uuid.UUID, message *Message) {
+	if client, exists := h.UserClients[userID]; exists {
+		serialized := h.serializeMessage(message)
 		select {
-		case client.Send <- h.serializeMessage(message):
+		case client.Send <- serialized:
 		default:
-			log.Printf("Failed to send message to user %s", userID)
+			log.Printf("Failed to send message to user %s: channel full", userID)
 		}
 	}
 }

@@ -8,6 +8,7 @@ import (
 
 	"chatty.mtran.io/internal/auth"
 	ws "chatty.mtran.io/internal/websocket"
+	"github.com/google/uuid"
 	gorilla "github.com/gorilla/websocket"
 )
 
@@ -28,7 +29,12 @@ func NewWebSocketHandler(clientOrigin string, app *application) *WebSocketHandle
 }
 
 func (h *WebSocketHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	userID := r.Context().Value(auth.UserIDKey).(string)
+	userIDStr := r.Context().Value(auth.UserIDKey)
+	userID, err := uuid.Parse(userIDStr.(string))
+	if err != nil {
+		fmt.Println("Invalid user ID:", err)
+		return
+	}
 
 	// Upgrade to WebSocket
 	conn, err := h.upgrader.Upgrade(w, r, nil)

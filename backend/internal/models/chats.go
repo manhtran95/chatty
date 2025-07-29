@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -114,4 +116,35 @@ func (m *ChatModel) GetChatMembers(chatID uuid.UUID) ([]*UserInfo, error) {
 	}
 
 	return members, nil
+}
+
+// AddUserToChat adds a user to a chat
+func (m *ChatModel) AddUserToChat(chatID, userID uuid.UUID) error {
+	stmt := `INSERT INTO chat_users (chat_id, user_id) VALUES ($1, $2) ON CONFLICT (chat_id, user_id) DO NOTHING`
+
+	_, err := m.DB.Exec(stmt, chatID, userID)
+	return err
+}
+
+// AddUsersToChat adds multiple users to a chat
+func (m *ChatModel) AddUsersToChat(chatID uuid.UUID, userIDs []uuid.UUID) error {
+	if len(userIDs) == 0 {
+		return nil
+	}
+
+	// Build a single query with all users using VALUES clause
+	stmt := `INSERT INTO chat_users (chat_id, user_id) VALUES `
+	args := make([]any, 0, len(userIDs)+1)
+	args = append(args, chatID)
+	placeholders := make([]string, len(userIDs))
+	for i := range userIDs {
+		placeholders[i] = fmt.Sprintf("($1, $%d)", i+2)
+		args = append(args, userIDs[i])
+	}
+
+	stmt += strings.Join(placeholders, ", ")
+	stmt += ` ON CONFLICT (chat_id, user_id) DO NOTHING`
+
+	_, err := m.DB.Exec(stmt, args...)
+	return err
 }

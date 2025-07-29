@@ -42,8 +42,8 @@ func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	flag.Parse()
 
-	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
-	errorLog := log.New(os.Stderr, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
+	infoLog := log.New(os.Stdout, "Chatty INFO\t", log.Ldate|log.Ltime)
+	errorLog := log.New(os.Stderr, "Chatty ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// db
 	db, err := openDB()
@@ -56,14 +56,14 @@ func main() {
 
 	formDecoder := form.NewDecoder()
 
-	// Initialize WebSocket hub
-	hub := websocket.NewHub()
-	go hub.Run() // Start the hub in a goroutine
-
 	// Initialize models
 	userModel := &models.UserModel{DB: db}
 	chatModel := &models.ChatModel{DB: db}
 	messageModel := &models.MessageModel{DB: db}
+
+	// Initialize WebSocket hub with all models
+	hub := websocket.NewHub(chatModel, userModel, messageModel)
+	go hub.Run() // Start the hub in a goroutine
 
 	app := &application{
 		errorLog:    errorLog,

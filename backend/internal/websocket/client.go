@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
 
@@ -25,7 +26,7 @@ const (
 
 // Client represents a connected WebSocket client
 type Client struct {
-	UserID string
+	UserID uuid.UUID
 	Conn   *websocket.Conn
 	Send   chan []byte
 	Hub    *Hub
@@ -33,7 +34,7 @@ type Client struct {
 }
 
 // NewClient creates a new WebSocket client
-func NewClient(conn *websocket.Conn, userID string, hub *Hub) *Client {
+func NewClient(conn *websocket.Conn, userID uuid.UUID, hub *Hub) *Client {
 	return &Client{
 		UserID: userID,
 		Conn:   conn,
@@ -42,9 +43,50 @@ func NewClient(conn *websocket.Conn, userID string, hub *Hub) *Client {
 	}
 }
 
+type rawMessage struct {
+	Type     string          `json:"type"`
+	Data     json.RawMessage `json:"data"`
+	SenderID string          `json:"senderId"`
+}
+
+func unmarshalRawMessage(p []byte) (message *Message, err error) {
+	var raw rawMessage
+	if err := json.Unmarshal(p, &raw); err != nil {
+		return nil, err
+	}
+
+	var data MessageData
+	switch raw.Type {
+	case CLIENT_CREATE_CHAT:
+		var createChatData *ClientCreateChatData
+		if err := json.Unmarshal(raw.Data, &createChatData); err != nil {
+			return nil, err
+		}
+		data = createChatData
+
+	case CLIENT_SEND_MESSAGE:
+		var sendMessageData *ClientSendMessageData
+		if err := json.Unmarshal(raw.Data, &sendMessageData); err != nil {
+			return nil, err
+		}
+		data = sendMessageData
+
+	default:
+		log.Printf("unknown message type: %s", raw.Type)
+		return nil, nil
+	}
+
+	return &Message{
+		Type:     raw.Type,
+		Data:     data,
+		SenderID: raw.SenderID,
+	}, nil
+}
+
 // readPump pumps messages from the WebSocket connection to the hub
 func (c *Client) readPump() {
 	defer func() {
+		log.Printf("readPump: closing connection")
 		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
@@ -57,21 +99,24 @@ func (c *Client) readPump() {
 	})
 
 	for {
-		var message Message
-		err := c.Conn.ReadJSON(&message)
+		_, p, err := c.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("WebSocket read error: %v", err)
 			}
+			log.Printf("readPump: error: %v", err)
 			break
 		}
 
-		// Set sender ID from the client
-		message.SenderID = c.UserID
-		message.Timestamp = time.Now().Unix()
+		message, err := unmarshalRawMessage(p)
+		log.Printf("readPump: %v", message)
+		if err != nil {
+			log.Printf("unmarshalRawMessage: error: %v", err)
+			break
+		}
 
 		// Send message to hub for processing
-		c.Hub.Broadcast <- &message
+		c.Hub.Broadcast <- message
 	}
 }
 

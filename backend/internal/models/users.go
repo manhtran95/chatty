@@ -83,11 +83,47 @@ func (m *UserModel) Authenticate(email, password string) (*UserInfo, error) {
 			return nil, err
 		}
 	}
-	
+
 	return &userInfo, nil
 }
 
 // We'll use the Exists method to check if a user exists with a specific ID.
 func (m *UserModel) Exists(id uuid.UUID) (bool, error) {
-	return false, nil
+	var exists bool
+	stmt := "SELECT EXISTS(SELECT 1 FROM users WHERE id = $1)"
+	err := m.DB.QueryRow(stmt, id).Scan(&exists)
+	return exists, err
+}
+
+func (m *UserModel) UserInfosByEmails(userEmails []string) ([]UserInfo, error) {
+	if len(userEmails) == 0 {
+		return nil, nil
+	}
+
+	stmt := `SELECT id, name, email FROM users WHERE email = ANY($1)`
+	rows, err := m.DB.Query(stmt, pq.Array(userEmails))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var userInfos []UserInfo
+	for rows.Next() {
+		var userInfo UserInfo
+		err = rows.Scan(&userInfo.ID, &userInfo.Name, &userInfo.Email)
+		if err != nil {
+			return nil, err
+		}
+		userInfos = append(userInfos, userInfo)
+	}
+
+	if len(userInfos) != len(userEmails) {
+		return nil, ErrUserDoesNotExist
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return userInfos, nil
 }
