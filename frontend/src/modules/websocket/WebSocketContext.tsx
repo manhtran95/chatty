@@ -20,9 +20,10 @@ import type {
     ClientReceiveMessage,
     ClientCreateChat,
     ClientReceiveChat,
-    ClientRequestPrevMessages,
-    ClientReceivePrevMessages,
+    ClientRequestChatHistory,
+    ClientReceiveChatHistory,
 } from '../../services/WebSocketTypes'
+import { MESSAGE_TYPES } from '../../services/WebSocketTypes'
 import { useAuth } from '../auth/AuthContext'
 
 interface WebSocketContextType {
@@ -34,7 +35,7 @@ interface WebSocketContextType {
     // Typed message sending functions
     sendClientMessage: (chatId: string, content: string) => boolean
     createChat: (name: string, participants: string[]) => boolean
-    requestPrevMessages: (chatId: string, offset: number, limit: number) => boolean
+    requestChatHistory: (chatId: string, offset: number, limit: number) => boolean
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
@@ -81,36 +82,41 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
     }
 
     // Typed message sending functions
-    const sendClientMessage = (chatId: string, content: string): boolean => {
+    const sendClientMessage = (chatID: string, content: string): boolean => {
         const message: ClientSendMessage = {
-            type: 'ClientSendMessage',
+            type: MESSAGE_TYPES.CLIENT_SEND_MESSAGE,
             data: {
-                chatId,
+                chatID,
                 content,
+                senderId: auth?.user?.id || '',
             },
+            senderId: auth?.user?.id || '',
         }
         return sendMessage(message)
     }
 
-    const createChat = (name: string, participants: string[]): boolean => {
+    const createChat = (name: string, participantEmails: string[]): boolean => {
+        participantEmails.push(auth?.user?.email || '')
         const message: ClientCreateChat = {
-            type: 'ClientCreateChat',
+            type: MESSAGE_TYPES.CLIENT_CREATE_CHAT,
             data: {
                 name,
-                participants,
+                participantEmails: participantEmails,
             },
+            senderId: auth?.user?.id || '',
         }
         return sendMessage(message)
     }
 
-    const requestPrevMessages = (chatId: string, offset: number, limit: number): boolean => {
-        const message: ClientRequestPrevMessages = {
-            type: 'ClientRequestPrevMessages',
+    const requestChatHistory = (chatID: string, offset: number, limit: number): boolean => {
+        const message: ClientRequestChatHistory = {
+            type: MESSAGE_TYPES.CLIENT_REQUEST_CHAT_HISTORY,
             data: {
-                chatId,
+                chatID,
                 offset,
                 limit,
             },
+            senderId: auth?.user?.id || '',
         }
         return sendMessage(message)
     }
@@ -146,7 +152,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 addMessageHandler: addMessageHandlerToContext,
                 sendClientMessage,
                 createChat,
-                requestPrevMessages,
+                requestChatHistory,
             }}
         >
             {children}

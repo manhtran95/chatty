@@ -1,17 +1,17 @@
-import type { ChatData, NewMessage } from '../types'
+import type { ClientReceiveChatData, ClientReceiveMessageData } from '../../../services/WebSocketTypes'
+import type { ChatData } from '../types'
 
 export function receiveNewMessage(
-    newMessage: NewMessage,
+    newMessage: ClientReceiveMessageData,
     setChatListData: React.Dispatch<React.SetStateAction<ChatData[] | null>>
 ) {
     // Update the chat list data with the new message, add it to head of the messages array of the chat
     setChatListData((prevData) => {
         if (!prevData) return null
         return prevData.map((chat) => {
-            if (chat.id === newMessage.chatId) {
+            if (chat.chatID === newMessage.chatID) {
                 return {
                     ...chat,
-                    lastMessage: newMessage.content, // update last message
                     messages: [
                         {
                             senderName: newMessage.senderName,
@@ -23,5 +23,24 @@ export function receiveNewMessage(
             }
             return chat
         })
+    })
+}
+
+export function receiveNewChat(
+    newChat: ClientReceiveChatData,
+    setChatListData: React.Dispatch<React.SetStateAction<ChatData[] | null>>
+) {
+    // Update the chat list data with the new chat, add it to head of the chats array
+    setChatListData((prevData) => {
+        if (!prevData) return null
+        return [
+            {
+                chatID: newChat.chatID,
+                name: newChat.name,
+                participantInfos: newChat.participantInfos,
+                messages: [],
+            },
+            ...prevData,
+        ]
     })
 }

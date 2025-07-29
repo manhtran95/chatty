@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import ChatInfoList from './ChatInfoList'
 import SelectedChat from './SelectedChat'
 import type { ChatData } from './types'
-import { receiveNewMessage } from './utils/commandHandlers'
+import { receiveNewChat, receiveNewMessage } from './utils/commandHandlers'
 import { useAuth } from '../../modules/auth/AuthContext'
 import { useWebSocket } from '../../modules/websocket/WebSocketContext'
 import type {
     WebSocketMessage,
     ClientReceiveMessage,
     ClientReceiveChat,
-    ClientReceivePrevMessages
+    ClientReceiveChatHistory
 } from '../../services/WebSocketTypes'
+import { MESSAGE_TYPES } from '../../services/WebSocketTypes'
 import { buttonClasses, statusClasses, layoutClasses } from '../../utils/tailwindClasses'
 import './styles/ChatApp.css'
 import { stubInitData } from './utils/data'
@@ -19,7 +20,7 @@ import { stubInitData } from './utils/data'
 function ChatApp() {
     const auth = useAuth()
     const navigate = useNavigate()
-    const { isConnected, addMessageHandler, requestPrevMessages } = useWebSocket()
+    const { isConnected, addMessageHandler, requestChatHistory } = useWebSocket()
 
     const { isAuthenticated, user, logout } = auth!
     console.log(`user: ${user}`)
@@ -42,27 +43,23 @@ function ChatApp() {
 
             // Handle different message types with proper typing
             switch (message.type) {
-                case 'ClientReceiveMessage':
+                case MESSAGE_TYPES.CLIENT_RECEIVE_MESSAGE:
                     const receiveMsg = message as ClientReceiveMessage
                     receiveNewMessage(
-                        {
-                            chatId: receiveMsg.data.chatId,
-                            senderName: receiveMsg.data.senderName,
-                            content: receiveMsg.data.content,
-                        },
+                        receiveMsg.data,
                         setChatListData
                     )
                     break
-                case 'ClientReceiveChat':
+                case MESSAGE_TYPES.CLIENT_RECEIVE_CHAT:
                     const receiveChat = message as ClientReceiveChat
                     console.log('Received new chat:', receiveChat.data)
-                    // TODO: Handle new chat creation
+                    receiveNewChat(receiveChat.data, setChatListData)
                     break
-                case 'ClientReceivePrevMessages':
-                    const receivePrevMsg = message as ClientReceivePrevMessages
-                    console.log('Received previous messages for chat:', receivePrevMsg.data.chatId)
-                    console.log('Has more messages:', receivePrevMsg.data.hasMore)
-                    // TODO: Handle received previous messages
+                case MESSAGE_TYPES.CLIENT_RECEIVE_CHAT_HISTORY:
+                    const receiveChatHistory = message as ClientReceiveChatHistory
+                    console.log('Received chat history for chat:', receiveChatHistory.data.chatID)
+                    console.log('Has more messages:', receiveChatHistory.data.hasMore)
+                    // TODO: Handle received chat history
                     break
                 default:
                     console.log('Unknown message type:', message.type)
@@ -75,13 +72,13 @@ function ChatApp() {
         }
     }, [isConnected, addMessageHandler])
 
-    // Request previous messages when chat is selected
+    // Request chat history when chat is selected
     useEffect(() => {
         if (selectedChatId && isConnected) {
-            // Request first 20 messages (offset 0, limit 20)
-            requestPrevMessages(selectedChatId, 0, 20)
+            // TODO: Request first 20 messages (offset 0, limit 20)
+            // requestChatHistory(selectedChatId, 0, 20)
         }
-    }, [selectedChatId, isConnected, requestPrevMessages])
+    }, [selectedChatId, isConnected, requestChatHistory])
 
     // User not logged in, return
     // if (!isAuthenticated) {
@@ -101,9 +98,8 @@ function ChatApp() {
     // deduced data
     const chatInfoList = chatListData
         ? chatListData.map((chat) => ({
-            id: chat.id,
+            chatID: chat.chatID,
             name: chat.name,
-            lastMessage: chat.lastMessage || 'No messages',
         }))
         : []
     const selectedChatMessages: Array<{
@@ -111,7 +107,7 @@ function ChatApp() {
         content: string
     }> =
         selectedChatId !== null && chatListData
-            ? chatListData.find((chat) => chat.id === selectedChatId)
+            ? chatListData.find((chat) => chat.chatID === selectedChatId)
                 ?.messages || []
             : []
 
@@ -166,14 +162,16 @@ function ChatApp() {
                     messages={selectedChatMessages}
                 />
             </div>
-            <div className="p-4">
+            {/* <div className="p-4">
                 <button
                     onClick={() =>
                         receiveNewMessage(
                             {
-                                chatId: '1',
+                                chatID: '1',
                                 senderName: 'manh',
                                 content: `New message here!${Math.random()}`,
+                                timestamp: new Date().toISOString(),
+                                messageId: '1',
                             },
                             setChatListData
                         )
@@ -182,7 +180,7 @@ function ChatApp() {
                 >
                     Receive new mess testing
                 </button>
-            </div>
+            </div> */}
         </>
     )
 }

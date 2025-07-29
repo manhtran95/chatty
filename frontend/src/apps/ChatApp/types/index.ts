@@ -1,11 +1,11 @@
 export interface ChatData {
-    id: string
+    chatID: string
     name: string
-    userList: Array<{
+    participantInfos: Array<{
         id: string
-        username: string
+        name: string
+        email: string
     }>
-    lastMessage: string
     // order of messages: latest message first
     messages: Array<{
         senderName: string
@@ -14,7 +14,13 @@ export interface ChatData {
 }
 
 export interface NewMessage {
-    chatId: string
+    chatID: string
     senderName: string
     content: string
 }
+
+// export interface NewChat {
+//     id: string
+//     name: string
+//     participantEmails: Array<string>
+// }

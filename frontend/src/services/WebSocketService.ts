@@ -13,7 +13,7 @@ export function connectWebSocket(token: string): Promise<boolean> {
             return
         }
 
-        socket = new WebSocket(`ws://localhost:8080/ws?token=${token}`)
+        socket = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws?access_token=${token}`)
 
         socket.onopen = () => {
             console.log('WebSocket connected')
@@ -22,6 +22,7 @@ export function connectWebSocket(token: string): Promise<boolean> {
         }
 
         socket.onmessage = (event) => {
+            console.log('ws service onmessage', event)
             try {
                 const message: WebSocketMessage = JSON.parse(event.data)
                 console.log('Message from server:', message)
@@ -54,6 +55,7 @@ export function connectWebSocket(token: string): Promise<boolean> {
 }
 
 export function sendMessage(msg: WebSocketMessage): boolean {
+    console.log('ws service sendMessage', msg)
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify(msg))
         return true
@@ -64,6 +66,7 @@ export function sendMessage(msg: WebSocketMessage): boolean {
 }
 
 export function disconnectWebSocket(): boolean {
+    console.log('ws service disconnect WebSocket')
     if (socket && socket.readyState === WebSocket.OPEN) {
         socket.close(1000, 'Client closed connection')
         isConnected = false

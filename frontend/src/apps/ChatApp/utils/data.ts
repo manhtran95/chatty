@@ -1,18 +1,19 @@
 export const stubInitData = [
     {
-        id: '1',
+        chatID: '1',
         name: 'Chat0',
-        userList: [
+        participantInfos: [
             {
                 id: '3a092631-cbcc-4ab1-a1ae-d617da0050d4',
-                username: 'carol50',
+                name: 'carol50',
+                email: 'carol50@example.com',
             },
             {
                 id: '693fe40f-3a17-4689-b51b-da057980b990',
-                username: 'eve68',
+                name: 'eve68',
+                email: 'eve68@example.com',
             },
         ],
-        lastMessage: 'See you soon.',
         messages: [
             {
                 senderName: 'eve68',
@@ -33,19 +34,20 @@ export const stubInitData = [
         ],
     },
     {
-        id: '2',
+        chatID: '2',
         name: 'Chat1',
-        userList: [
+        participantInfos: [
             {
                 id: 'c78c1108-600c-4c99-8ec7-187e0b7f0150',
-                username: 'alice86',
+                name: 'alice86',
+                email: 'alice86@example.com',
             },
             {
                 id: '950bdece-46c7-4b08-9e10-573bf0d4382e',
-                username: 'dave91',
+                name: 'dave91',
+                email: 'dave91@example.com',
             },
         ],
-        lastMessage: "How's it going?",
         messages: [
             {
                 senderName: 'alice86',
@@ -62,19 +64,20 @@ export const stubInitData = [
         ],
     },
     {
-        id: '3',
+        chatID: '3',
         name: 'Chat2',
-        userList: [
+        participantInfos: [
             {
                 id: '05ec6324-a3b8-476d-a474-6617fcf00d63',
-                username: 'eve32',
+                name: 'eve32',
+                email: 'eve32@example.com',
             },
             {
                 id: '57d856fe-7996-4a3f-814d-38cc91ac3c13',
-                username: 'bob86',
+                name: 'bob86',
+                email: 'bob86@example.com',
             },
         ],
-        lastMessage: "What's up?",
         messages: [
             {
                 senderName: 'eve32',

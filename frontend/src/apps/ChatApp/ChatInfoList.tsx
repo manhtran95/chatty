@@ -4,9 +4,8 @@ import CreateChatModal from './CreateChatModal'
 import { buttonClasses, chatClasses } from '../../utils/tailwindClasses'
 
 interface ChatData {
-    id: string
+    chatID: string
     name: string
-    lastMessage: string
 }
 
 interface ChatInfoListProps {
@@ -48,11 +47,10 @@ function ChatInfoList({
             <div className={chatClasses.list}>
                 {chats.map((chat) => (
                     <ChatInfo
-                        key={chat.id}
+                        key={chat.chatID}
                         name={chat.name}
-                        lastMessage={chat.lastMessage}
-                        isSelected={selectedChatId === chat.id}
-                        onClick={() => onChatSelect(chat.id)}
+                        isSelected={selectedChatId === chat.chatID}
+                        onClick={() => onChatSelect(chat.chatID)}
                     />
                 ))}
             </div>

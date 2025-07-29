@@ -8,6 +8,7 @@ interface CreateChatModalProps {
 }
 
 export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProps) {
+    const [chatName, setChatName] = useState('')
     const [recipientEmail, setRecipientEmail] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
@@ -15,6 +16,11 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (!chatName.trim()) {
+            setError('Please enter a chat name')
+            return
+        }
 
         if (!recipientEmail.trim()) {
             setError('Please enter a recipient email')
@@ -30,9 +36,10 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
         setError('')
 
         try {
-            const success = createChat('New Chat', [recipientEmail.trim()])
+            const success = createChat(chatName.trim(), [recipientEmail.trim()])
 
             if (success) {
+                setChatName('')
                 setRecipientEmail('')
                 onClose()
             } else {
@@ -46,6 +53,7 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
     }
 
     const handleClose = () => {
+        setChatName('')
         setRecipientEmail('')
         setError('')
         onClose()
@@ -61,6 +69,21 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
                 </div>
 
                 <form onSubmit={handleSubmit} className={modalClasses.form}>
+                    <div className={formClasses.group}>
+                        <label htmlFor="chatName" className={formClasses.label}>
+                            Chat Name
+                        </label>
+                        <input
+                            type="text"
+                            id="chatName"
+                            value={chatName}
+                            onChange={(e) => setChatName(e.target.value)}
+                            placeholder="Enter chat name"
+                            disabled={isSubmitting}
+                            className={`w-11/12 ${isSubmitting ? inputClasses.disabled : error ? inputClasses.error : inputClasses.base}`}
+                        />
+                    </div>
+
                     <div className={formClasses.group}>
                         <label htmlFor="recipientEmail" className={formClasses.label}>
                             Recipient Email
@@ -89,7 +112,7 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
                         <button
                             type="submit"
                             className={buttonClasses.primary}
-                            disabled={isSubmitting || !recipientEmail.trim() || !isConnected}
+                            disabled={isSubmitting || !chatName.trim() || !recipientEmail.trim() || !isConnected}
                         >
                             {isSubmitting ? 'Creating...' : 'Create Chat'}
                         </button>
