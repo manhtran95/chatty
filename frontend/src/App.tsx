@@ -6,6 +6,7 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import { AuthProvider } from './modules/auth/AuthContext'
 import { WebSocketProvider } from './modules/websocket/WebSocketContext'
+import { ChatAppProvider } from './apps/ChatApp/ChatAppContext'
 
 function App() {
     return (
@@ -16,7 +17,11 @@ function App() {
                         <Route path="/home" element={<Home />} />
                         <Route path="/signup" element={<Signup />} />
                         <Route path="/login" element={<Login />} />
-                        <Route path="/" element={<ChatApp />} />
+                        <Route path="/" element={
+                            <ChatAppProvider>
+                                <ChatApp />
+                            </ChatAppProvider>
+                        } />
                     </Routes>
                 </WebSocketProvider>
             </AuthProvider>

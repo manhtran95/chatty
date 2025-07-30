@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const isAuthenticated = !!(user && accessToken)
 
     useEffect(() => {
+        console.log('AuthContext refresh token')
         const tryRefresh = async () => {
             try {
                 const res = await AuthService.refresh()

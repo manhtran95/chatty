@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useWebSocket } from '../../modules/websocket/WebSocketContext'
+import { useChatApp } from './ChatAppContext'
 import { buttonClasses, inputClasses, modalClasses, formClasses } from '../../utils/tailwindClasses'
 
 interface CreateChatModalProps {
@@ -12,7 +12,7 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
     const [recipientEmail, setRecipientEmail] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [error, setError] = useState('')
-    const { createChat, isConnected } = useWebSocket()
+    const { wsCreateChat, isConnected } = useChatApp()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -36,7 +36,7 @@ export default function CreateChatModal({ isOpen, onClose }: CreateChatModalProp
         setError('')
 
         try {
-            const success = createChat(chatName.trim(), [recipientEmail.trim()])
+            const success = wsCreateChat(chatName.trim(), [recipientEmail.trim()])
 
             if (success) {
                 setChatName('')

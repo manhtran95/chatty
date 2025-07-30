@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useWebSocket } from '../../modules/websocket/WebSocketContext'
+import { useChatApp } from './ChatAppContext'
 import { buttonClasses, inputClasses } from '../../utils/tailwindClasses'
 
 interface MessageInputProps {
@@ -9,7 +9,7 @@ interface MessageInputProps {
 
 export default function MessageInput({ chatId, onMessageSent }: MessageInputProps) {
     const [message, setMessage] = useState('')
-    const { sendClientMessage, isConnected } = useWebSocket()
+    const { wsSendMessage, isConnected } = useChatApp()
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
@@ -19,7 +19,7 @@ export default function MessageInput({ chatId, onMessageSent }: MessageInputProp
         }
 
         // Send message via WebSocket using typed function
-        const success = sendClientMessage(chatId, message.trim())
+        const success = wsSendMessage(chatId, message.trim())
 
         if (success) {
             setMessage('')

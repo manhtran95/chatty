@@ -22,6 +22,7 @@ import type {
     ClientReceiveChat,
     ClientRequestChatHistory,
     ClientReceiveChatHistory,
+    ClientRequestChatList,
 } from '../../services/WebSocketTypes'
 import { MESSAGE_TYPES } from '../../services/WebSocketTypes'
 import { useAuth } from '../auth/AuthContext'
@@ -32,10 +33,11 @@ interface WebSocketContextType {
     disconnect: () => boolean
     sendMessage: (message: WebSocketMessage) => boolean
     addMessageHandler: (handler: (data: WebSocketMessage) => void) => () => void
-    // Typed message sending functions
-    sendClientMessage: (chatId: string, content: string) => boolean
-    createChat: (name: string, participants: string[]) => boolean
-    requestChatHistory: (chatId: string, offset: number, limit: number) => boolean
+    // command functions
+    clientSendMessage: (chatId: string, content: string) => boolean
+    clientCreateChat: (name: string, participants: string[]) => boolean
+    clientRequestChatHistory: (chatId: string, offset: number, limit: number) => boolean
+    clientRequestChatList: (offset: number, limit: number) => boolean
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
@@ -81,12 +83,22 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         return addMessageHandler(handler)
     }
 
-    // Typed message sending functions
-    const sendClientMessage = (chatID: string, content: string): boolean => {
+    // 1. CHAT LIST
+    const requestChatList = (offset: number, limit: number): boolean => {
+        const message: ClientRequestChatList = {
+            type: MESSAGE_TYPES.CLIENT_REQUEST_CHAT_LIST,
+            data: { offset, limit },
+            senderId: auth?.user?.id || '',
+        }
+        return sendMessage(message)
+    }
+
+    // 4. NEW MESSAGE
+    const sendClientMessage = (chatId: string, content: string): boolean => {
         const message: ClientSendMessage = {
             type: MESSAGE_TYPES.CLIENT_SEND_MESSAGE,
             data: {
-                chatID,
+                chatId,
                 content,
                 senderId: auth?.user?.id || '',
             },
@@ -95,6 +107,7 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         return sendMessage(message)
     }
 
+    // 2. CREATE CHAT
     const createChat = (name: string, participantEmails: string[]): boolean => {
         participantEmails.push(auth?.user?.email || '')
         const message: ClientCreateChat = {
@@ -108,11 +121,12 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         return sendMessage(message)
     }
 
-    const requestChatHistory = (chatID: string, offset: number, limit: number): boolean => {
+    // 3. CHAT HISTORY
+    const requestChatHistory = (chatId: string, offset: number, limit: number): boolean => {
         const message: ClientRequestChatHistory = {
             type: MESSAGE_TYPES.CLIENT_REQUEST_CHAT_HISTORY,
             data: {
-                chatID,
+                chatId,
                 offset,
                 limit,
             },
@@ -130,12 +144,13 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         ) {
             connect()
         } else if (!auth?.isAuthenticated) {
-            disconnect()
+            // disconnect()
         }
     }, [auth?.isAuthenticated, auth?.accessToken])
 
     // Cleanup on unmount
     useEffect(() => {
+        console.log('WebSocketProvider unmount')
         return () => {
             disconnect()
             clearMessageHandlers()
@@ -150,9 +165,11 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
                 disconnect,
                 sendMessage: sendMessageToServer,
                 addMessageHandler: addMessageHandlerToContext,
-                sendClientMessage,
-                createChat,
-                requestChatHistory,
+                // command functions
+                clientRequestChatList: requestChatList,
+                clientCreateChat: createChat,
+                clientRequestChatHistory: requestChatHistory,
+                clientSendMessage: sendClientMessage,
             }}
         >
             {children}

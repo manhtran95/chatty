@@ -2,12 +2,16 @@
 
 // Message type constants
 export const MESSAGE_TYPES = {
-    CLIENT_SEND_MESSAGE: 'ClientSendMessage',
-    CLIENT_RECEIVE_MESSAGE: 'ClientReceiveMessage',
-    CLIENT_CREATE_CHAT: 'ClientCreateChat',
-    CLIENT_RECEIVE_CHAT: 'ClientReceiveChat',
-    CLIENT_REQUEST_CHAT_HISTORY: 'ClientRequestChatHistory',
-    CLIENT_RECEIVE_CHAT_HISTORY: 'ClientReceiveChatHistory',
+    // request command
+    CLIENT_REQUEST_CHAT_LIST: 'ClientRequestChatList', // A.1
+    CLIENT_CREATE_CHAT: 'ClientCreateChat', // A.2
+    CLIENT_REQUEST_CHAT_HISTORY: 'ClientRequestChatHistory', // A.3
+    CLIENT_SEND_MESSAGE: 'ClientSendMessage', // A.4
+    // response command
+    CLIENT_RECEIVE_CHAT_LIST: 'ClientReceiveChatList', // B.1
+    CLIENT_RECEIVE_CHAT: 'ClientReceiveChat', // B.2
+    CLIENT_RECEIVE_CHAT_HISTORY: 'ClientReceiveChatHistory', // B.3
+    CLIENT_RECEIVE_MESSAGE: 'ClientReceiveMessage', // B.4
 } as const
 
 // Message type definitions
@@ -26,28 +30,36 @@ export interface WebSocketMessageResponse {
     error: string
 }
 
-// Specific message interfaces
-export interface ClientSendMessageData {
-    chatID: string
-    senderId: string
-    content: string
+// ***
+// 1. CHAT LIST
+// ***
+export interface ClientRequestChatListData {
+    offset: number
+    limit: number
 }
 
-export interface ClientReceiveMessageData {
-    chatID: string
-    senderName: string
-    content: string
-    timestamp: string
-    messageId: string
+export interface ClientReceiveChatListData {
+    chats: Array<{
+        chatId: string
+        name: string
+        participantInfos: Array<{
+            id: string
+            name: string
+            email: string
+        }>
+    }>
 }
 
+// ***
+// 2. CREATE CHAT
+// ***
 export interface ClientCreateChatData {
     name: string
     participantEmails: string[]
 }
 
 export interface ClientReceiveChatData {
-    chatID: string
+    chatId: string
     name: string
     participantInfos: Array<{
         id: string
@@ -56,14 +68,17 @@ export interface ClientReceiveChatData {
     }>
 }
 
+// ***
+// 3. CHAT HISTORY
+// ***
 export interface ClientRequestChatHistoryData {
-    chatID: string
+    chatId: string
     offset: number
     limit: number
 }
 
 export interface ClientReceiveChatHistoryData {
-    chatID: string
+    chatId: string
     messages: Array<{
         messageId: string
         senderName: string
@@ -73,7 +88,42 @@ export interface ClientReceiveChatHistoryData {
     hasMore: boolean
 }
 
-// Typed message interfaces
+
+// ***
+// 4. NEW MESSAGE
+// ***
+export interface ClientSendMessageData {
+    chatId: string
+    senderId: string
+    content: string
+}
+
+export interface ClientReceiveMessageData {
+    chatId: string
+    senderName: string
+    content: string
+    timestamp: string
+    messageId: string
+}
+
+// ***
+// ***
+// Specific message interfaces
+// ***
+// ***
+
+// 1. CHAT LIST
+export interface ClientRequestChatList extends WebSocketMessage {
+    type: typeof MESSAGE_TYPES.CLIENT_REQUEST_CHAT_LIST
+    data: ClientRequestChatListData
+}
+
+export interface ClientReceiveChatList extends WebSocketMessage {
+    type: typeof MESSAGE_TYPES.CLIENT_RECEIVE_CHAT_LIST
+    data: ClientReceiveChatListData
+}
+
+// 2. NEW MESSAGE
 export interface ClientSendMessage extends WebSocketMessage {
     type: typeof MESSAGE_TYPES.CLIENT_SEND_MESSAGE
     data: ClientSendMessageData
@@ -84,6 +134,7 @@ export interface ClientReceiveMessage extends WebSocketMessage {
     data: ClientReceiveMessageData
 }
 
+// 2. CREATE CHAT
 export interface ClientCreateChat extends WebSocketMessage {
     type: typeof MESSAGE_TYPES.CLIENT_CREATE_CHAT
     data: ClientCreateChatData
@@ -94,6 +145,7 @@ export interface ClientReceiveChat extends WebSocketMessage {
     data: ClientReceiveChatData
 }
 
+// 3. CHAT HISTORY
 export interface ClientRequestChatHistory extends WebSocketMessage {
     type: typeof MESSAGE_TYPES.CLIENT_REQUEST_CHAT_HISTORY
     data: ClientRequestChatHistoryData

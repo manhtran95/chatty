@@ -2,20 +2,21 @@ import { useState } from 'react'
 import ChatInfo from './ChatInfo'
 import CreateChatModal from './CreateChatModal'
 import { buttonClasses, chatClasses } from '../../utils/tailwindClasses'
+import type { ChatInfoType } from './types'
 
-interface ChatData {
-    chatID: string
-    name: string
-}
+// interface ChatData {
+//     chatID: string
+//     name: string
+// }
 
 interface ChatInfoListProps {
-    chats: ChatData[]
+    chatInfoList: Array<ChatInfoType>
     selectedChatId: string | null
     onChatSelect: (chatId: string) => void
 }
 
 function ChatInfoList({
-    chats,
+    chatInfoList,
     selectedChatId,
     onChatSelect,
 }: ChatInfoListProps) {
@@ -28,6 +29,8 @@ function ChatInfoList({
     const handleCloseModal = () => {
         setIsModalOpen(false)
     }
+
+    console.log('ChatInfoList chatInfoList', chatInfoList)
 
     return (
         <div className="w-1/4 border-r border-gray-300 h-[80vh] flex flex-col">
@@ -45,12 +48,13 @@ function ChatInfoList({
 
             {/* Chat List */}
             <div className={chatClasses.list}>
-                {chats.map((chat) => (
+                {chatInfoList.map((chat) => (
                     <ChatInfo
-                        key={chat.chatID}
+                        key={chat.chatId}
                         name={chat.name}
-                        isSelected={selectedChatId === chat.chatID}
-                        onClick={() => onChatSelect(chat.chatID)}
+                        participantInfos={chat.participantInfos}
+                        isSelected={selectedChatId === chat.chatId}
+                        onClick={() => onChatSelect(chat.chatId)}
                     />
                 ))}
             </div>
