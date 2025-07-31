@@ -1,5 +1,4 @@
 // WebSocketTypes.ts
-
 // Message type constants
 export const MESSAGE_TYPES = {
     // request command
@@ -30,6 +29,25 @@ export interface WebSocketMessageResponse {
     error: string
 }
 
+export interface ChatInfo {
+    chatId: string
+    name: string
+    participantInfos: Array<{
+        id: string
+        name: string
+        email: string
+    }>
+}
+
+export interface ChatData {
+    chatInfo: ChatInfo
+    // order of messages: latest message first
+    messages: Array<{
+        senderName: string
+        content: string
+    }>
+}
+
 // ***
 // 1. CHAT LIST
 // ***
@@ -39,15 +57,7 @@ export interface ClientRequestChatListData {
 }
 
 export interface ClientReceiveChatListData {
-    chats: Array<{
-        chatId: string
-        name: string
-        participantInfos: Array<{
-            id: string
-            name: string
-            email: string
-        }>
-    }>
+    chats: Array<ChatInfo>
 }
 
 // ***
@@ -58,15 +68,7 @@ export interface ClientCreateChatData {
     participantEmails: string[]
 }
 
-export interface ClientReceiveChatData {
-    chatId: string
-    name: string
-    participantInfos: Array<{
-        id: string
-        name: string
-        email: string
-    }>
-}
+export type ClientReceiveChatData = ChatInfo
 
 // ***
 // 3. CHAT HISTORY

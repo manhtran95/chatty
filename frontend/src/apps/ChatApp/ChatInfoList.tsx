@@ -2,12 +2,7 @@ import { useState } from 'react'
 import ChatInfo from './ChatInfo'
 import CreateChatModal from './CreateChatModal'
 import { buttonClasses, chatClasses } from '../../utils/tailwindClasses'
-import type { ChatInfoType } from './types'
-
-// interface ChatData {
-//     chatID: string
-//     name: string
-// }
+import type { ChatInfo as ChatInfoType } from '../../services/WebSocketTypes'
 
 interface ChatInfoListProps {
     chatInfoList: Array<ChatInfoType>

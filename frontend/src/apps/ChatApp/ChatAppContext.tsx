@@ -5,10 +5,7 @@ import {
     useEffect,
     type ReactNode,
 } from 'react'
-import { useNavigate } from 'react-router-dom'
-import type { ChatData, ChatInfoType } from './types'
 import { commandHandlerReceiveChatList, commandHandlerReceiveNewChat, commandHandlerReceiveNewMessage } from './utils/commandHandlers'
-import { useAuth } from '../../modules/auth/AuthContext'
 import { useWebSocket } from '../../modules/websocket/WebSocketContext'
 import type {
     WebSocketMessage,
@@ -17,22 +14,19 @@ import type {
     ClientReceiveChatHistory,
     ClientReceiveChatList
 } from '../../services/WebSocketTypes'
-import { MESSAGE_TYPES } from '../../services/WebSocketTypes'
+import { MESSAGE_TYPES, type ChatInfo, type ChatData } from '../../services/WebSocketTypes'
 
 interface ChatAppContextType {
     // State
     selectedChatId: string | null
     chatListData: ChatData[] | null
-    // showUserDropdown: boolean
     isConnected: boolean
 
     // Actions
     setSelectedChatId: (chatId: string | null) => void
-    // setShowUserDropdown: (show: boolean) => void
-    // handleLogout: () => void
 
     // Computed values
-    chatInfoList: ChatInfoType[]
+    chatInfoList: ChatInfo[]
     selectedChatMessages: Array<{
         senderName: string
         content: string
@@ -123,7 +117,7 @@ export const ChatAppProvider = ({ children }: ChatAppProviderProps) => {
     }, [selectedChatId, isConnected, wsRequestChatHistory])
 
     // Computed values
-    const chatInfoList: ChatInfoType[] = []
+    const chatInfoList: ChatInfo[] = []
     if (chatListData) {
         chatListData.forEach((chat) => {
             chatInfoList.push(chat.chatInfo)
