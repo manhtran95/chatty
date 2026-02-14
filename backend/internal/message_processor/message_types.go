@@ -37,8 +37,8 @@ type Response struct {
 
 // ClientSendMessageData represents data for sending a message
 type ClientSendMessageRequest struct {
-	ChatID   string `json:"chatId"`
-	Content  string `json:"content"`
+	ChatID  string `json:"chatId"`
+	Content string `json:"content"`
 }
 
 func (d ClientSendMessageRequest) GetType() string { return CLIENT_SEND_MESSAGE_REQUEST }

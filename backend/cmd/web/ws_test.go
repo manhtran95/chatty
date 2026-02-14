@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -19,6 +20,7 @@ import (
 	"github.com/go-playground/form/v4"
 	"github.com/google/uuid"
 	gorilla "github.com/gorilla/websocket"
+	"github.com/stretchr/testify/assert"
 )
 
 // setupTestApp creates a test application with mocked dependencies
@@ -74,7 +76,7 @@ func setupTestApp(t *testing.T) (*application, func()) {
 	return app, cleanup
 }
 
-func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn) {
+func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn, string) {
 	t.Helper()
 
 	// Set up test environment variables (only once)
@@ -123,9 +125,10 @@ func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn) {
 	}
 
 	handler := NewWebSocketHandler("http://localhost", app)
+	testUserID := uuid.New().String()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Mock authentication by adding userID to context
-		testUserID := uuid.New().String()
+		log.Printf("11 testUserID: %s", testUserID)
 		ctx := context.WithValue(r.Context(), auth.UserIDKey, testUserID)
 		handler.Handle(w, r.WithContext(ctx))
 	}))
@@ -145,12 +148,12 @@ func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn) {
 		t.Fatal("Expected connection to be established")
 	}
 
-	return cleanup, server, conn
+	return cleanup, server, conn, testUserID
 }
 
 // TestWebSocketConnection_Success tests successful WebSocket connection
 func TestWebSocketConnection_Success(t *testing.T) {
-	cleanup, server, conn := setupTestAppFull(t)
+	cleanup, server, conn, _ := setupTestAppFull(t)
 	defer cleanup()
 	defer server.Close()
 	defer conn.Close()
@@ -205,9 +208,8 @@ func TestWebSocketConnection_InvalidOrigin(t *testing.T) {
 	t.Log("Connection rejected as expected due to invalid origin")
 }
 
-// TestWebSocketConnection_SendMessage tests sending a message through WebSocket
-func TestWebSocketConnection_SendMessage(t *testing.T) {
-	cleanup, server, conn := setupTestAppFull(t)
+func TestUnknownRequestType(t *testing.T) {
+	cleanup, server, conn, testUserID := setupTestAppFull(t)
 	defer cleanup()
 	defer server.Close()
 	defer conn.Close()
@@ -216,15 +218,14 @@ func TestWebSocketConnection_SendMessage(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Send a test message (use a random user ID since we don't track it from setupTestAppFull)
-	testUserID := uuid.New()
 	testMessage := fmt.Sprintf(`{
-		"type": "client_send_message",
+		"type": "unknown_request_type",
 		"senderId": "%s",
 		"data": {
 			"chatId": "%s",
 			"content": "Hello, World!"
 		}
-	}`, testUserID.String(), uuid.New().String())
+	}`, testUserID, uuid.New().String())
 
 	err := conn.WriteMessage(gorilla.TextMessage, []byte(testMessage))
 	if err != nil {
@@ -233,15 +234,60 @@ func TestWebSocketConnection_SendMessage(t *testing.T) {
 
 	// Set a read deadline
 	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	_, _response, err := conn.ReadMessage()
+	response := messageprocessor.Response{}
+	err = json.Unmarshal(_response, &response)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
+
+	assert.Equal(t, response.Error, messageprocessor.ErrUnknownRequestType.Error())
+	assert.Equal(t, response.Type, "")
+	assert.Equal(t, response.Data, nil)
+
+	// Close connection before cleanup
+	conn.Close()
+	time.Sleep(50 * time.Millisecond)
+}
+
+// TestWebSocketConnection_SendMessage tests sending a message through WebSocket
+func TestWebSocketConnection_SendMessage(t *testing.T) {
+	// TODO
+	cleanup, server, conn, testUserID := setupTestAppFull(t)
+	defer cleanup()
+	defer server.Close()
+	defer conn.Close()
+
+	// Give some time for the connection to register with the hub
+	time.Sleep(100 * time.Millisecond)
+
+	// Send a test message (use a random user ID since we don't track it from setupTestAppFull)
+	testMessage := fmt.Sprintf(`{
+		"type": "client_send_message",
+		"senderId": "%s",
+		"data": {
+			"chatId": "%s",
+			"content": "Hello, World!"
+		}
+	}`, testUserID, uuid.New().String())
+
+	err := conn.WriteMessage(gorilla.TextMessage, []byte(testMessage))
+	if err != nil {
+		t.Fatalf("Failed to send message: %v", err)
+	}
+
+	// Set a read deadline
+	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	// Try to read response (this might timeout, which is okay for this test)
-	_, message, err := conn.ReadMessage()
+	_, response, err := conn.ReadMessage()
+	t.Logf("Received response: %s", string(response))
 	if err != nil {
 		// It's acceptable if we don't receive a response immediately
 		// as the message processing depends on database operations
 		t.Logf("No immediate response received (expected): %v", err)
 	} else {
-		t.Logf("Received response: %s", string(message))
+		t.Logf("Received response: %s", string(response))
 	}
 
 	t.Log("Message sent successfully")

@@ -95,9 +95,14 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.Send:
+			log.Printf("writePump: sending message to client %s", c.UserID)
+			log.Printf("writePump: message: %s", string(message))
+
 			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel
+				log.Printf("writePump: message channel closed")
+
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}

@@ -65,7 +65,11 @@ func unmarshalRawMessage(p []byte) (message *Request, err error) {
 
 	default:
 		log.Printf("unknown message type: %s", raw.Type)
-		return nil, errors.New("unknown message type")
+		return &Request{
+			Type:     raw.Type,
+			Data:     nil,
+			SenderID: raw.SenderID,
+		}, errors.New("unknown message type")
 	}
 
 	return &Request{
@@ -78,8 +82,16 @@ func unmarshalRawMessage(p []byte) (message *Request, err error) {
 // functions
 func (mp *MessageProcessor) ProcessMessage(rawMessage []byte) {
 	message, err := unmarshalRawMessage(rawMessage)
+	senderId := uuid.MustParse(message.SenderID)
 	if err != nil {
 		log.Printf("Error unmarshalling message: %v", err)
+		log.Printf("senderId: %s", senderId)
+		responseMessage := &Response{
+			Type:  "",
+			Data:  nil,
+			Error: ErrUnknownRequestType.Error(),
+		}
+		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
 	}
 
@@ -108,7 +120,7 @@ func (mp *MessageProcessor) handleUserCreateChatRequest(message *Request) {
 		responseMessage := &Response{
 			Type:  USER_CREATE_CHAT_RESPONSE,
 			Data:  nil,
-			Error: "Cannot create a chat with less than 2 participants",
+			Error: ErrCannotCreateChatWithLessThan2Participants.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
@@ -120,7 +132,7 @@ func (mp *MessageProcessor) handleUserCreateChatRequest(message *Request) {
 		responseMessage := &Response{
 			Type:  USER_CREATE_CHAT_RESPONSE,
 			Data:  nil,
-			Error: "Error checking if user emails exist",
+			Error: ErrUserDoesNotExist.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
@@ -135,7 +147,7 @@ func (mp *MessageProcessor) handleUserCreateChatRequest(message *Request) {
 		responseMessage := &Response{
 			Type:  USER_CREATE_CHAT_RESPONSE,
 			Data:  nil,
-			Error: "Error creating chat",
+			Error: ErrCannotCreateChat.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
@@ -152,7 +164,7 @@ func (mp *MessageProcessor) handleUserCreateChatRequest(message *Request) {
 		responseMessage := &Response{
 			Type:  USER_CREATE_CHAT_RESPONSE,
 			Data:  nil,
-			Error: "Error adding participants to chat",
+			Error: ErrCannotAddParticipantsToChat.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
@@ -203,7 +215,7 @@ func (mp *MessageProcessor) handleClientSendMessageRequest(request *Request) {
 		responseMessage := &Response{
 			Type:  CLIENT_SEND_MESSAGE_RESPONSE,
 			Data:  nil,
-			Error: "Error getting chat",
+			Error: ErrCannotGetChat.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
@@ -216,7 +228,7 @@ func (mp *MessageProcessor) handleClientSendMessageRequest(request *Request) {
 		responseMessage := &Response{
 			Type:  CLIENT_SEND_MESSAGE_RESPONSE,
 			Data:  nil,
-			Error: "Error saving message",
+			Error: ErrCannotSaveMessage.Error(),
 		}
 		mp.MessageSender.SendToUser(senderId, responseMessage)
 		return
