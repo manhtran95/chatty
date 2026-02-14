@@ -82,7 +82,7 @@ func (h *Hub) handleSendMessage(message *Message) {
 func (h *Hub) handleCreateChat(message *Message) {
 	log.Printf("handleCreateChat")
 	// Type assert to get the chat data
-	chatData, ok := message.Data.(*ClientCreateChatData)
+	chatData, ok := message.Data.(*UserCreateChatRequest)
 	if !ok {
 		log.Printf("Invalid chat creation data")
 		return
@@ -108,6 +108,7 @@ func (h *Hub) handleCreateChat(message *Message) {
 		return
 	}
 
+	// Add participants to chat
 	userIDs := make([]uuid.UUID, 0, len(userInfos))
 	for _, userInfo := range userInfos {
 		userIDs = append(userIDs, userInfo.ID)
@@ -119,6 +120,7 @@ func (h *Hub) handleCreateChat(message *Message) {
 	}
 	log.Printf("Created chat: %s with ID: %s", chat.Name, chat.ID)
 
+	// Create response message
 	wsUserInfos := make([]UserInfo, 0, len(userInfos))
 	for _, userInfo := range userInfos {
 		wsUserInfos = append(wsUserInfos, UserInfo{
@@ -127,8 +129,7 @@ func (h *Hub) handleCreateChat(message *Message) {
 			Name:  userInfo.Name,
 		})
 	}
-	// Create response message
-	responseData := &ClientReceiveChatData{
+	responseData := &UserCreateChatResponse{
 		ChatID:           chat.ID.String(),
 		Name:             chat.Name,
 		ParticipantInfos: wsUserInfos,

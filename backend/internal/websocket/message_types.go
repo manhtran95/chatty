@@ -48,13 +48,13 @@ type ClientReceiveMessageData struct {
 
 func (d ClientReceiveMessageData) GetType() string { return CLIENT_RECEIVE_MESSAGE }
 
-// ClientCreateChatData represents data for creating a chat
-type ClientCreateChatData struct {
+// UserCreateChatRequest represents data for creating a chat
+type UserCreateChatRequest struct {
 	Name              string   `json:"name"`
 	ParticipantEmails []string `json:"participantEmails"`
 }
 
-func (d ClientCreateChatData) GetType() string { return CLIENT_CREATE_CHAT }
+func (d UserCreateChatRequest) GetType() string { return CLIENT_CREATE_CHAT }
 
 type UserInfo struct {
 	ID    string `json:"id"`
@@ -62,14 +62,14 @@ type UserInfo struct {
 	Name  string `json:"name"`
 }
 
-// ClientReceiveChatData represents data for receiving a chat
-type ClientReceiveChatData struct {
+// UserCreateChatResponse represents data for receiving a chat
+type UserCreateChatResponse struct {
 	ChatID           string     `json:"chatID"`
 	Name             string     `json:"name"`
 	ParticipantInfos []UserInfo `json:"participantInfos"`
 }
 
-func (d ClientReceiveChatData) GetType() string { return CLIENT_RECEIVE_CHAT }
+func (d UserCreateChatResponse) GetType() string { return CLIENT_RECEIVE_CHAT }
 
 // ClientRequestChatHistoryData represents data for requesting chat history
 type ClientRequestChatHistoryData struct {
@@ -105,7 +105,7 @@ type ClientRequestAllChatsData struct {
 func (d ClientRequestAllChatsData) GetType() string { return CLIENT_REQUEST_ALL_CHATS }
 
 type ClientReceiveAllChatsData struct {
-	Chats []ClientReceiveChatData `json:"chats"`
+	Chats []UserCreateChatResponse `json:"chats"`
 }
 
 func (d ClientReceiveAllChatsData) GetType() string { return CLIENT_RECEIVE_ALL_CHATS }

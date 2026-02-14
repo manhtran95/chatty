@@ -59,7 +59,9 @@ func unmarshalRawMessage(p []byte) (message *Message, err error) {
 	var data MessageData
 	switch raw.Type {
 	case CLIENT_CREATE_CHAT:
-		var createChatData *ClientCreateChatData
+		log.Printf("CLIENT_CREATE_CHAT: %v", raw.Data)
+
+		var createChatData *UserCreateChatRequest
 		if err := json.Unmarshal(raw.Data, &createChatData); err != nil {
 			return nil, err
 		}
@@ -106,7 +108,7 @@ func (c *Client) readPump() {
 				log.Printf("WebSocket read error: %v", err)
 			}
 			log.Printf("readPump: error: %v", err)
-			continue
+			return // Exit the loop on read error to trigger cleanup
 		}
 
 		message, err := unmarshalRawMessage(p)
