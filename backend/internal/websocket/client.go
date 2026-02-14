@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -73,7 +74,7 @@ func unmarshalRawMessage(p []byte) (message *Message, err error) {
 
 	default:
 		log.Printf("unknown message type: %s", raw.Type)
-		return nil, nil
+		return nil, errors.New("unknown message type")
 	}
 
 	return &Message{
@@ -105,14 +106,14 @@ func (c *Client) readPump() {
 				log.Printf("WebSocket read error: %v", err)
 			}
 			log.Printf("readPump: error: %v", err)
-			break
+			continue
 		}
 
 		message, err := unmarshalRawMessage(p)
 		log.Printf("readPump: %v", message)
 		if err != nil {
 			log.Printf("unmarshalRawMessage: error: %v", err)
-			break
+			continue
 		}
 
 		// Send message to hub for processing

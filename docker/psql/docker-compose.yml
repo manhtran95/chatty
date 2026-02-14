@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: chatty-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=chatty
+      - POSTGRES_PASSWORD=chatty_password
+      - POSTGRES_DB=chatty_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatty -d chatty_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    name: chatty-postgres-data
+    driver: local

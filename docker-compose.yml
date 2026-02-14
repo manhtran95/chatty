@@ -1,6 +1,22 @@
-version: '3.8'
-
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: chatty-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=chatty
+      - POSTGRES_PASSWORD=chatty_password
+      - POSTGRES_DB=chatty_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatty -d chatty_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -11,6 +27,14 @@ services:
       - PORT=8080
       - GIN_MODE=release
       - CLIENT_ORIGIN=http://localhost:3000
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=chatty
+      - DB_PASSWORD=chatty_password
+      - DB_NAME=chatty_db
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/health" ]
@@ -18,20 +42,24 @@ services:
       timeout: 10s
       retries: 3
 
-  frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+  # frontend:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.frontend
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80" ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
 
 networks:
   default:

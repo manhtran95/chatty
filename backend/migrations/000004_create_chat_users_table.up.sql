@@ -7,7 +7,5 @@ CREATE TABLE
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );
 
--- Create hash indexes for better performance on UUID lookups
-CREATE INDEX idx_chat_users_chat_id ON chat_users USING hash (chat_id);
-
-CREATE INDEX idx_chat_users_user_id ON chat_users USING hash (user_id);
+CREATE INDEX idx_chat_users_chat_id ON chat_users (chat_id);
+CREATE INDEX idx_chat_users_user_id ON chat_users (user_id);

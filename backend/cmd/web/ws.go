@@ -21,6 +21,7 @@ func NewWebSocketHandler(clientOrigin string, app *application) *WebSocketHandle
 	return &WebSocketHandler{
 		upgrader: gorilla.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
+				// return true
 				return r.Header.Get("Origin") == clientOrigin
 			},
 		},
