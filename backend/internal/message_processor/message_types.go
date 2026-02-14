@@ -3,7 +3,7 @@ package messageprocessor
 // Message types that are read from client (incoming messages)
 const (
 	USER_CREATE_CHAT_REQUEST        = "UserCreateChatRequest"
-	CLIENT_SEND_MESSAGE_REQUEST     = "ClientSendMessage"
+	CLIENT_SEND_MESSAGE_REQUEST     = "ClientSendMessageRequest"
 	CLIENT_GET_CHAT_HISTORY_REQUEST = "ClientGetChatHistoryRequest"
 	CLIENT_GET_ALL_CHATS_REQUEST    = "ClientGetAllChatsRequest"
 )
@@ -21,17 +21,23 @@ type MessageData interface {
 	GetType() string
 }
 
-// Base message structure
-type Message struct {
+// Base request structure
+type Request struct {
 	Type     string      `json:"type"`
 	Data     MessageData `json:"data"`
 	SenderID string      `json:"senderId"`
 }
 
+// Base response structure
+type Response struct {
+	Type  string      `json:"type"`
+	Data  MessageData `json:"data"`
+	Error string      `json:"error"`
+}
+
 // ClientSendMessageData represents data for sending a message
 type ClientSendMessageRequest struct {
 	ChatID   string `json:"chatId"`
-	SenderID string `json:"senderId"`
 	Content  string `json:"content"`
 }
 
@@ -39,11 +45,11 @@ func (d ClientSendMessageRequest) GetType() string { return CLIENT_SEND_MESSAGE_
 
 // ClientReceiveMessageData represents data for receiving a message
 type ClientSendMessageResponse struct {
-	ChatID     string `json:"chatId"`
-	SenderName string `json:"senderName"`
-	Content    string `json:"content"`
-	Timestamp  string `json:"timestamp"`
-	MessageID  string `json:"messageId"`
+	ChatID    string `json:"chatId"`
+	SenderID  string `json:"senderId"`
+	Content   string `json:"content"`
+	Timestamp string `json:"timestamp"`
+	MessageID string `json:"messageId"`
 }
 
 func (d ClientSendMessageResponse) GetType() string { return CLIENT_SEND_MESSAGE_RESPONSE }
@@ -111,8 +117,8 @@ type ClientGetAllChatsResponse struct {
 func (d ClientGetAllChatsResponse) GetType() string { return CLIENT_GET_ALL_CHATS_RESPONSE }
 
 // NewMessage creates a new message with the given data
-func NewMessage(data MessageData) *Message {
-	return &Message{
+func NewMessage(data MessageData) *Request {
+	return &Request{
 		Type: data.GetType(),
 		Data: data,
 	}

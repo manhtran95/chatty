@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"sync"
 	"time"
@@ -45,46 +44,14 @@ func NewClient(conn *websocket.Conn, userID uuid.UUID, hub *Hub) *Client {
 	}
 }
 
-type rawMessage struct {
-	Type     string          `json:"type"`
-	Data     json.RawMessage `json:"data"`
-	SenderID string          `json:"senderId"`
-}
+// Start starts the client's read and write pumps
+func (c *Client) Start() {
+	// Register client with hub
+	c.Hub.Register <- c
 
-func unmarshalRawMessage(p []byte) (message *messageprocessor.Message, err error) {
-	var raw rawMessage
-	if err := json.Unmarshal(p, &raw); err != nil {
-		return nil, err
-	}
-
-	var data messageprocessor.MessageData
-	switch raw.Type {
-	case messageprocessor.USER_CREATE_CHAT_REQUEST:
-		log.Printf("CLIENT_CREATE_CHAT: %v", raw.Data)
-
-		var createChatData *messageprocessor.UserCreateChatRequest
-		if err := json.Unmarshal(raw.Data, &createChatData); err != nil {
-			return nil, err
-		}
-		data = createChatData
-
-	case messageprocessor.CLIENT_SEND_MESSAGE_REQUEST:
-		var sendMessageData *messageprocessor.ClientSendMessageRequest
-		if err := json.Unmarshal(raw.Data, &sendMessageData); err != nil {
-			return nil, err
-		}
-		data = sendMessageData
-
-	default:
-		log.Printf("unknown message type: %s", raw.Type)
-		return nil, errors.New("unknown message type")
-	}
-
-	return &messageprocessor.Message{
-		Type:     raw.Type,
-		Data:     data,
-		SenderID: raw.SenderID,
-	}, nil
+	// Start read and write pumps
+	go c.readPump()
+	go c.writePump()
 }
 
 // readPump pumps messages from the WebSocket connection to the hub
@@ -112,15 +79,8 @@ func (c *Client) readPump() {
 			return // Exit the loop on read error to trigger cleanup
 		}
 
-		message, err := unmarshalRawMessage(p)
-		log.Printf("readPump: %v", message)
-		if err != nil {
-			log.Printf("unmarshalRawMessage: error: %v", err)
-			continue
-		}
-
 		// Send message to hub for processing
-		c.Hub.Broadcast <- message
+		c.Hub.Broadcast <- p
 	}
 }
 
@@ -162,7 +122,7 @@ func (c *Client) writePump() {
 }
 
 // SendMessage sends a message to this client
-func (c *Client) SendMessage(message *messageprocessor.Message) error {
+func (c *Client) SendMessage(message *messageprocessor.Request) error {
 	data, err := json.Marshal(message)
 	if err != nil {
 		return err
@@ -174,16 +134,6 @@ func (c *Client) SendMessage(message *messageprocessor.Message) error {
 	default:
 		return ErrClientBufferFull
 	}
-}
-
-// Start starts the client's read and write pumps
-func (c *Client) Start() {
-	// Register client with hub
-	c.Hub.Register <- c
-
-	// Start read and write pumps
-	go c.readPump()
-	go c.writePump()
 }
 
 // Custom errors
