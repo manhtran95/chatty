@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 
+	messageprocessor "chatty.mtran.io/internal/message_processor"
 	"chatty.mtran.io/internal/models"
 	"chatty.mtran.io/internal/websocket"
 	"github.com/go-playground/form/v4"
@@ -56,13 +57,15 @@ func main() {
 
 	formDecoder := form.NewDecoder()
 
-	// Initialize models
+	// Initialize models, message processor, and hub
 	userModel := &models.UserModel{DB: db}
 	chatModel := &models.ChatModel{DB: db}
 	messageModel := &models.MessageModel{DB: db}
 
-	// Initialize WebSocket hub with all models
-	hub := websocket.NewHub(chatModel, userModel, messageModel)
+	messageProcessor := messageprocessor.NewMessageProcessor(chatModel, userModel, messageModel)
+	hub := websocket.NewHub(messageProcessor)
+	messageProcessor.SetMessageSender(hub)
+
 	go hub.Run() // Start the hub in a goroutine
 
 	app := &application{

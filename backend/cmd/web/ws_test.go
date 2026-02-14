@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"chatty.mtran.io/internal/auth"
+	messageprocessor "chatty.mtran.io/internal/message_processor"
 	"chatty.mtran.io/internal/models"
 	ws "chatty.mtran.io/internal/websocket"
 	"github.com/go-playground/form/v4"
@@ -43,7 +44,9 @@ func setupTestApp(t *testing.T) (*application, func()) {
 	messageModel := &models.MessageModel{DB: db}
 
 	// Initialize WebSocket hub
-	hub := ws.NewHub(chatModel, userModel, messageModel)
+	messageProcessor := messageprocessor.NewMessageProcessor(chatModel, userModel, messageModel)
+	hub := ws.NewHub(messageProcessor)
+	messageProcessor.SetMessageSender(hub)
 	go hub.Run()
 
 	app := &application{
@@ -92,7 +95,9 @@ func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn) {
 	messageModel := &models.MessageModel{DB: db}
 
 	// Initialize WebSocket hub
-	hub := ws.NewHub(chatModel, userModel, messageModel)
+	messageProcessor := messageprocessor.NewMessageProcessor(chatModel, userModel, messageModel)
+	hub := ws.NewHub(messageProcessor)
+	messageProcessor.SetMessageSender(hub)
 	go hub.Run()
 
 	app := &application{

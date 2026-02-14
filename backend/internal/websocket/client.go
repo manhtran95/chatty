@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	messageprocessor "chatty.mtran.io/internal/message_processor"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -50,25 +51,25 @@ type rawMessage struct {
 	SenderID string          `json:"senderId"`
 }
 
-func unmarshalRawMessage(p []byte) (message *Message, err error) {
+func unmarshalRawMessage(p []byte) (message *messageprocessor.Message, err error) {
 	var raw rawMessage
 	if err := json.Unmarshal(p, &raw); err != nil {
 		return nil, err
 	}
 
-	var data MessageData
+	var data messageprocessor.MessageData
 	switch raw.Type {
-	case CLIENT_CREATE_CHAT:
+	case messageprocessor.USER_CREATE_CHAT_REQUEST:
 		log.Printf("CLIENT_CREATE_CHAT: %v", raw.Data)
 
-		var createChatData *UserCreateChatRequest
+		var createChatData *messageprocessor.UserCreateChatRequest
 		if err := json.Unmarshal(raw.Data, &createChatData); err != nil {
 			return nil, err
 		}
 		data = createChatData
 
-	case CLIENT_SEND_MESSAGE:
-		var sendMessageData *ClientSendMessageData
+	case messageprocessor.CLIENT_SEND_MESSAGE_REQUEST:
+		var sendMessageData *messageprocessor.ClientSendMessageRequest
 		if err := json.Unmarshal(raw.Data, &sendMessageData); err != nil {
 			return nil, err
 		}
@@ -79,7 +80,7 @@ func unmarshalRawMessage(p []byte) (message *Message, err error) {
 		return nil, errors.New("unknown message type")
 	}
 
-	return &Message{
+	return &messageprocessor.Message{
 		Type:     raw.Type,
 		Data:     data,
 		SenderID: raw.SenderID,
@@ -161,7 +162,7 @@ func (c *Client) writePump() {
 }
 
 // SendMessage sends a message to this client
-func (c *Client) SendMessage(message *Message) error {
+func (c *Client) SendMessage(message *messageprocessor.Message) error {
 	data, err := json.Marshal(message)
 	if err != nil {
 		return err
