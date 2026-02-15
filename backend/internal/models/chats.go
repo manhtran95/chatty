@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 // Chat represents a chat room
 type Chat struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"created_at"`
+	Id        uuid.UUID   `json:"id"`
+	Name      string      `json:"name"`
+	UpdatedAt time.Time   `json:"updated_at"`
+	UserInfos []*UserInfo `json:"user_infos"`
 }
 
 // ChatModel wraps a database connection pool for chat operations
@@ -27,9 +29,9 @@ func (m *ChatModel) InsertChat(name string) (*Chat, error) {
 		Name: name,
 	}
 
-	stmt := `INSERT INTO chats (name) VALUES ($1) RETURNING id, name, created_at`
+	stmt := `INSERT INTO chats (name) VALUES ($1) RETURNING id, name, updated_at`
 
-	err := m.DB.QueryRow(stmt, name).Scan(&chat.ID, &chat.Name, &chat.CreatedAt)
+	err := m.DB.QueryRow(stmt, name).Scan(&chat.Id, &chat.Name, &chat.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +43,9 @@ func (m *ChatModel) InsertChat(name string) (*Chat, error) {
 func (m *ChatModel) GetChat(id uuid.UUID) (*Chat, error) {
 	chat := &Chat{}
 
-	stmt := `SELECT id, name, created_at FROM chats WHERE id = $1`
+	stmt := `SELECT id, name, updated_at FROM chats WHERE id = $1`
 
-	err := m.DB.QueryRow(stmt, id).Scan(&chat.ID, &chat.Name, &chat.CreatedAt)
+	err := m.DB.QueryRow(stmt, id).Scan(&chat.Id, &chat.Name, &chat.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -54,36 +56,92 @@ func (m *ChatModel) GetChat(id uuid.UUID) (*Chat, error) {
 	return chat, nil
 }
 
-// GetAllChatsByUserID retrieves all chats that a user is a member of
-func (m *ChatModel) GetAllChatsByUserID(userID uuid.UUID) ([]*Chat, error) {
-	stmt := `SELECT c.id, c.name, c.created_at 
-	         FROM chats c 
-	         INNER JOIN chat_users cu ON c.id = cu.chat_id 
-	         WHERE cu.user_id = $1 
-	         ORDER BY c.created_at DESC`
+// GetChatsByUserID retrieves all chats that a user is a member of
+func (m *ChatModel) GetChatsByUserID(userID uuid.UUID, cursorUpdatedAt *time.Time, chatId *string, limit int) ([]*Chat, error) {
+	var rows *sql.Rows
+	var err error
 
-	rows, err := m.DB.Query(stmt, userID)
+	if cursorUpdatedAt == nil {
+		stmt := `SELECT c.id, c.name, c.updated_at 
+		FROM chats c 
+		INNER JOIN chat_users cu ON c.id = cu.chat_id 
+		WHERE cu.user_id = $1 
+		ORDER BY c.updated_at DESC
+		LIMIT $2`
+		rows, err = m.DB.Query(stmt, userID, limit)
+	} else {
+		chatIdUUID := uuid.MustParse(*chatId)
+		stmt := `SELECT c.id, c.name, c.updated_at 
+		FROM chats c 
+		INNER JOIN chat_users cu ON c.id = cu.chat_id 
+		WHERE cu.user_id = $1 
+		AND (c.updated_at, c.id) < ($2, $3)
+		ORDER BY c.updated_at DESC
+		LIMIT $4`
+		rows, err = m.DB.Query(stmt, userID, *cursorUpdatedAt, chatIdUUID, limit)
+	}
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
 	var chats []*Chat
+	var chatIds []uuid.UUID
 
 	for rows.Next() {
 		chat := &Chat{}
-		err := rows.Scan(&chat.ID, &chat.Name, &chat.CreatedAt)
+		err := rows.Scan(&chat.Id, &chat.Name, &chat.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
 		chats = append(chats, chat)
+		chatIds = append(chatIds, chat.Id)
+	}
+
+	// get user infos
+	chatToUserMap, err := m.getChatUserInfos(chatIds)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, chat := range chats {
+		chat.UserInfos = chatToUserMap[chat.Id]
+	}
+
+	return chats, nil
+}
+
+func (m *ChatModel) getChatUserInfos(chatIds []uuid.UUID) (map[uuid.UUID][]*UserInfo, error) {
+	chatToUserMap := make(map[uuid.UUID][]*UserInfo)
+	stmt := `SELECT users.id, users.name, users.email, chat_users.chat_id
+	         FROM users
+	         INNER JOIN chat_users ON users.id = chat_users.user_id 
+	         WHERE chat_users.chat_id = ANY($1)
+	        `
+	rows, err := m.DB.Query(stmt, pq.Array(chatIds))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		userInfo := &UserInfo{}
+		chatId := uuid.UUID{}
+		err = rows.Scan(&userInfo.ID, &userInfo.Name, &userInfo.Email, &chatId)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := chatToUserMap[chatId]; !ok {
+			chatToUserMap[chatId] = make([]*UserInfo, 0)
+		}
+		chatToUserMap[chatId] = append(chatToUserMap[chatId], userInfo)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, err
 	}
-
-	return chats, nil
+	return chatToUserMap, nil
 }
 
 // GetChatMembers retrieves all members of a specific chat

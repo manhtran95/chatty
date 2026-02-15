@@ -1,19 +1,21 @@
 package messageprocessor
 
+import "time"
+
 // Message types that are read from client (incoming messages)
 const (
-	USER_CREATE_CHAT_REQUEST        = "UserCreateChatRequest"
-	CLIENT_SEND_MESSAGE_REQUEST     = "ClientSendMessageRequest"
-	CLIENT_GET_CHAT_HISTORY_REQUEST = "ClientGetChatHistoryRequest"
-	CLIENT_GET_ALL_CHATS_REQUEST    = "ClientGetAllChatsRequest"
+	USER_CREATE_CHAT_REQUEST      = "UserCreateChatRequest"
+	USER_SEND_MESSAGE_REQUEST     = "UserSendMessageRequest"
+	USER_GET_CHAT_HISTORY_REQUEST = "UserGetChatHistoryRequest"
+	USER_GET_CHATS_REQUEST        = "UserGetChatsRequest"
 )
 
 // Message types that are written to client (outgoing messages)
 const (
-	USER_CREATE_CHAT_RESPONSE        = "UserCreateChatResponse"
-	CLIENT_SEND_MESSAGE_RESPONSE     = "ClientSendMessageResponse"
-	CLIENT_GET_CHAT_HISTORY_RESPONSE = "ClientGetChatHistoryResponse"
-	CLIENT_GET_ALL_CHATS_RESPONSE    = "ClientGetAllChatsResponse"
+	USER_CREATE_CHAT_RESPONSE      = "UserCreateChatResponse"
+	USER_SEND_MESSAGE_RESPONSE     = "UserSendMessageResponse"
+	USER_GET_CHAT_HISTORY_RESPONSE = "UserGetChatHistoryResponse"
+	USER_GET_CHATS_RESPONSE        = "UserGetChatsResponse"
 )
 
 // MessageData represents the data payload for any message type
@@ -21,11 +23,11 @@ type MessageData interface {
 	GetType() string
 }
 
+// Base types
 // Base request structure
 type Request struct {
-	Type     string      `json:"type"`
-	Data     MessageData `json:"data"`
-	SenderID string      `json:"senderId"`
+	Type string      `json:"type"`
+	Data MessageData `json:"data"`
 }
 
 // Base response structure
@@ -35,15 +37,36 @@ type Response struct {
 	Error string      `json:"error"`
 }
 
-// ClientSendMessageData represents data for sending a message
+type UserInfo struct {
+	ID    string `json:"id"`
+	Email string `json:"email"`
+	Name  string `json:"name"`
+}
+
+type ChatInfo struct {
+	Id        string     `json:"id"`
+	Name      string     `json:"name"`
+	UpdatedAt time.Time  `json:"updatedAt"`
+	UserInfos []UserInfo `json:"userInfos"`
+}
+
+type ChatHistoryMessage struct {
+	MessageID  string `json:"messageId"`
+	SenderName string `json:"senderName"`
+	Content    string `json:"content"`
+	Timestamp  string `json:"timestamp"`
+}
+
+// Client APIs
+//
+// Send Message
 type ClientSendMessageRequest struct {
 	ChatID  string `json:"chatId"`
 	Content string `json:"content"`
 }
 
-func (d ClientSendMessageRequest) GetType() string { return CLIENT_SEND_MESSAGE_REQUEST }
+func (d ClientSendMessageRequest) GetType() string { return USER_SEND_MESSAGE_REQUEST }
 
-// ClientReceiveMessageData represents data for receiving a message
 type ClientSendMessageResponse struct {
 	ChatID    string `json:"chatId"`
 	SenderID  string `json:"senderId"`
@@ -52,69 +75,51 @@ type ClientSendMessageResponse struct {
 	MessageID string `json:"messageId"`
 }
 
-func (d ClientSendMessageResponse) GetType() string { return CLIENT_SEND_MESSAGE_RESPONSE }
+func (d ClientSendMessageResponse) GetType() string { return USER_SEND_MESSAGE_RESPONSE }
 
-// UserCreateChatRequest represents data for creating a chat
-type UserCreateChatRequest struct {
+// Create Chat
+type CreateChatRequest struct {
 	Name              string   `json:"name"`
 	ParticipantEmails []string `json:"participantEmails"`
 }
 
-func (d UserCreateChatRequest) GetType() string { return USER_CREATE_CHAT_REQUEST }
+func (d CreateChatRequest) GetType() string { return USER_CREATE_CHAT_REQUEST }
 
-type UserInfo struct {
-	ID    string `json:"id"`
-	Email string `json:"email"`
-	Name  string `json:"name"`
-}
+type CreateChatResponse ChatInfo
 
-// UserCreateChatResponse represents data for receiving a chat
-type UserCreateChatResponse struct {
-	ChatID           string     `json:"chatID"`
-	Name             string     `json:"name"`
-	ParticipantInfos []UserInfo `json:"participantInfos"`
-}
+func (d CreateChatResponse) GetType() string { return USER_CREATE_CHAT_RESPONSE }
 
-func (d UserCreateChatResponse) GetType() string { return USER_CREATE_CHAT_RESPONSE }
-
-// ClientRequestChatHistoryData represents data for requesting chat history
-type ClientGetChatHistoryRequest struct {
+// Get Chat History
+type GetChatHistoryRequest struct {
 	ChatID string `json:"chatID"`
 	Offset int    `json:"offset"`
 	Limit  int    `json:"limit"`
 }
 
-func (d ClientGetChatHistoryRequest) GetType() string { return CLIENT_GET_CHAT_HISTORY_REQUEST }
+func (d GetChatHistoryRequest) GetType() string { return USER_GET_CHAT_HISTORY_REQUEST }
 
-// ChatHistoryMessage represents a single message in chat history
-type ChatHistoryMessage struct {
-	MessageID  string `json:"messageId"`
-	SenderName string `json:"senderName"`
-	Content    string `json:"content"`
-	Timestamp  string `json:"timestamp"`
-}
-
-// ClientReceiveChatHistoryData represents data for receiving chat history
-type ClientGetChatHistoryResponse struct {
+type GetChatHistoryResponse struct {
 	ChatID   string               `json:"chatID"`
 	Messages []ChatHistoryMessage `json:"messages"`
 	HasMore  bool                 `json:"hasMore"`
 }
 
-func (d ClientGetChatHistoryResponse) GetType() string { return CLIENT_GET_CHAT_HISTORY_RESPONSE }
+func (d GetChatHistoryResponse) GetType() string { return USER_GET_CHAT_HISTORY_RESPONSE }
 
-type ClientGetAllChatsRequest struct {
-	Offset int `json:"offset"`
-	Limit  int `json:"limit"`
+// Get Chats
+type GetChatsRequest struct {
+	CursorUpdatedAt *time.Time `json:"cursorUpdatedAt,omitempty"`
+	ChatID          *string    `json:"chatID,omitempty"`
+	Limit           int        `json:"limit"`
 }
 
-func (d ClientGetAllChatsRequest) GetType() string { return CLIENT_GET_ALL_CHATS_REQUEST }
+func (d GetChatsRequest) GetType() string { return USER_GET_CHATS_REQUEST }
 
-type ClientGetAllChatsResponse struct {
-	Chats []UserCreateChatResponse `json:"chats"`
+type GetChatsResponse struct {
+	Chats []ChatInfo `json:"chats"`
 }
 
-func (d ClientGetAllChatsResponse) GetType() string { return CLIENT_GET_ALL_CHATS_RESPONSE }
+func (d GetChatsResponse) GetType() string { return USER_GET_CHATS_RESPONSE }
 
 // NewMessage creates a new message with the given data
 func NewMessage(data MessageData) *Request {
@@ -127,7 +132,7 @@ func NewMessage(data MessageData) *Request {
 // IsIncomingMessage checks if a message type is incoming (from client)
 func IsIncomingMessage(messageType string) bool {
 	switch messageType {
-	case CLIENT_SEND_MESSAGE_REQUEST, USER_CREATE_CHAT_REQUEST, CLIENT_GET_CHAT_HISTORY_REQUEST:
+	case USER_SEND_MESSAGE_REQUEST, USER_CREATE_CHAT_REQUEST, USER_GET_CHAT_HISTORY_REQUEST:
 		return true
 	default:
 		return false
@@ -137,7 +142,7 @@ func IsIncomingMessage(messageType string) bool {
 // IsOutgoingMessage checks if a message type is outgoing (to client)
 func IsOutgoingMessage(messageType string) bool {
 	switch messageType {
-	case CLIENT_SEND_MESSAGE_RESPONSE, USER_CREATE_CHAT_RESPONSE, CLIENT_GET_CHAT_HISTORY_RESPONSE:
+	case USER_SEND_MESSAGE_RESPONSE, USER_CREATE_CHAT_RESPONSE, USER_GET_CHAT_HISTORY_RESPONSE:
 		return true
 	default:
 		return false

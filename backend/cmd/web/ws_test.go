@@ -251,7 +251,7 @@ func TestUnknownRequestType(t *testing.T) {
 }
 
 // TestWebSocketConnection_SendMessage tests sending a message through WebSocket
-func TestWebSocketConnection_SendMessage(t *testing.T) {
+func TestSendMessageSuccess(t *testing.T) {
 	// TODO
 	cleanup, server, conn, testUserID := setupTestAppFull(t)
 	defer cleanup()
@@ -263,7 +263,7 @@ func TestWebSocketConnection_SendMessage(t *testing.T) {
 
 	// Send a test message (use a random user ID since we don't track it from setupTestAppFull)
 	testMessage := fmt.Sprintf(`{
-		"type": "client_send_message",
+		"type": "ClientSendMessageRequest",
 		"senderId": "%s",
 		"data": {
 			"chatId": "%s",

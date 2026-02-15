@@ -8,12 +8,17 @@ import (
 	"github.com/google/uuid"
 )
 
+type HubMessage struct {
+	Message  []byte
+	SenderID uuid.UUID
+}
+
 // Hub manages all WebSocket connections
 type Hub struct {
 	UserClients      map[uuid.UUID]*Client // user ID -> client (one client per user)
 	Register         chan *Client
 	Unregister       chan *Client
-	Broadcast        chan []byte
+	Broadcast        chan HubMessage
 	MessageProcessor *messageprocessor.MessageProcessor
 }
 
@@ -23,7 +28,7 @@ func NewHub(messageProcessor *messageprocessor.MessageProcessor) *Hub {
 		UserClients:      make(map[uuid.UUID]*Client),
 		Register:         make(chan *Client),
 		Unregister:       make(chan *Client),
-		Broadcast:        make(chan []byte),
+		Broadcast:        make(chan HubMessage),
 		MessageProcessor: messageProcessor,
 	}
 }
@@ -43,9 +48,9 @@ func (h *Hub) Run() {
 			}
 			log.Printf("Client unregistered: User %s", client.UserID)
 
-		case bytes := <-h.Broadcast:
+		case message := <-h.Broadcast:
 			log.Printf("h.Broadcast channel received message")
-			h.MessageProcessor.ProcessMessage(bytes)
+			h.MessageProcessor.ProcessMessage(message.SenderID, message.Message)
 		}
 	}
 }

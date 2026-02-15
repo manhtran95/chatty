@@ -80,7 +80,10 @@ func (c *Client) readPump() {
 		}
 
 		// Send message to hub for processing
-		c.Hub.Broadcast <- p
+		c.Hub.Broadcast <- HubMessage{
+			Message:  p,
+			SenderID: c.UserID,
+		}
 	}
 }
 
