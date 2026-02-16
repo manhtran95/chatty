@@ -2,7 +2,6 @@ package messageprocessor
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 
 	"chatty.mtran.io/internal/models"
@@ -14,12 +13,6 @@ type MessageProcessor struct {
 	UserModel     *models.UserModel
 	MessageModel  *models.MessageModel
 	MessageSender ResponseSender
-}
-
-type rawMessage struct {
-	Type     string          `json:"type"`
-	Data     json.RawMessage `json:"data"`
-	SenderID string          `json:"senderId"`
 }
 
 type ResponseSender interface {
@@ -39,61 +32,11 @@ func (mp *MessageProcessor) SetMessageSender(messageSender ResponseSender) {
 	mp.MessageSender = messageSender
 }
 
-func unmarshalRawMessage(p []byte) (message *Request, err error) {
-	var raw rawMessage
-	if err := json.Unmarshal(p, &raw); err != nil {
-		return nil, err
-	}
-
-	var data MessageData
-	switch raw.Type {
-	case USER_CREATE_CHAT_REQUEST:
-		log.Printf("CLIENT_CREATE_CHAT: %v", raw.Data)
-
-		var createChatData *CreateChatRequest
-		if err := json.Unmarshal(raw.Data, &createChatData); err != nil {
-			return nil, err
-		}
-		data = createChatData
-
-	case USER_SEND_MESSAGE_REQUEST:
-		var sendMessageData *ClientSendMessageRequest
-		if err := json.Unmarshal(raw.Data, &sendMessageData); err != nil {
-			return nil, err
-		}
-		data = sendMessageData
-
-	case USER_GET_CHATS_REQUEST:
-		var getChatsData *GetChatsRequest
-		if err := json.Unmarshal(raw.Data, &getChatsData); err != nil {
-			return nil, err
-		}
-		data = getChatsData
-
-	case USER_GET_CHAT_HISTORY_REQUEST:
-		var getChatHistoryData *GetChatHistoryRequest
-		if err := json.Unmarshal(raw.Data, &getChatHistoryData); err != nil {
-			return nil, err
-		}
-		data = getChatHistoryData
-
-	default:
-		log.Printf("unknown message type: %s", raw.Type)
-		return &Request{
-			Type: raw.Type,
-			Data: nil,
-		}, errors.New("unknown message type")
-	}
-
-	return &Request{
-		Type: raw.Type,
-		Data: data,
-	}, nil
-}
-
 // functions
-func (mp *MessageProcessor) ProcessMessage(senderId uuid.UUID, rawMessage []byte) {
-	request, err := unmarshalRawMessage(rawMessage)
+func (mp *MessageProcessor) ProcessMessage(senderId uuid.UUID, message []byte) {
+	// request, err := unmarshalRawMessage(rawMessage)
+	var request Request
+	err := json.Unmarshal(message, &request)
 	if err != nil {
 		log.Printf("Error unmarshalling message: %v", err)
 		log.Printf("senderId: %s", senderId)
@@ -107,14 +50,34 @@ func (mp *MessageProcessor) ProcessMessage(senderId uuid.UUID, rawMessage []byte
 	}
 
 	switch request.Type {
-	case USER_CREATE_CHAT_REQUEST:
-		mp.handleCreateChatRequest(senderId, request)
-	case USER_SEND_MESSAGE_REQUEST:
-		mp.handleSendMessageRequest(senderId, request)
-	case USER_GET_CHAT_HISTORY_REQUEST:
-		mp.handleGetChatHistoryRequest(senderId, request)
-	case USER_GET_CHATS_REQUEST:
-		mp.handleGetChatsRequest(senderId, request)
+	case CREATE_CHAT_REQUEST:
+		var reqData CreateChatRequest
+		if err := json.Unmarshal(request.Data, &reqData); err != nil {
+			log.Printf("Error unmarshalling create chat data: %v", err)
+			return
+		}
+		mp.handleCreateChatRequest(senderId, reqData)
+	case SEND_MESSAGE_REQUEST:
+		var reqData SendMessageRequest
+		if err := json.Unmarshal(request.Data, &reqData); err != nil {
+			log.Printf("Error unmarshalling send message data: %v", err)
+			return
+		}
+		mp.handleSendMessageRequest(senderId, reqData)
+	case GET_CHAT_HISTORY_REQUEST:
+		var reqData GetChatHistoryRequest
+		if err := json.Unmarshal(request.Data, &reqData); err != nil {
+			log.Printf("Error unmarshalling get chat history data: %v", err)
+			return
+		}
+		mp.handleGetChatHistoryRequest(senderId, reqData)
+	case GET_CHATS_REQUEST:
+		var reqData GetChatsRequest
+		if err := json.Unmarshal(request.Data, &reqData); err != nil {
+			log.Printf("Error unmarshalling get chats data: %v", err)
+			return
+		}
+		mp.handleGetChatsRequest(senderId, reqData)
 	default:
 		log.Printf("unknown message type: %s", request.Type)
 		responseMessage := &Response{
@@ -127,18 +90,12 @@ func (mp *MessageProcessor) ProcessMessage(senderId uuid.UUID, rawMessage []byte
 	}
 }
 
-func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message *Request) {
-	chatData, ok := message.Data.(*CreateChatRequest)
-	if !ok {
-		log.Printf("Invalid chat creation data")
-		return
-	}
-
+func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, reqData CreateChatRequest) {
 	// check if participantIDs are valid
-	if len(chatData.ParticipantEmails) < 2 {
+	if len(reqData.ParticipantEmails) < 2 {
 		log.Printf("Cannot create a chat with less than 2 participants")
 		responseMessage := &Response{
-			Type:  USER_CREATE_CHAT_RESPONSE,
+			Type:  CREATE_CHAT_RESPONSE,
 			Data:  nil,
 			Error: ErrCannotCreateChatWithLessThan2Participants.Error(),
 		}
@@ -146,11 +103,11 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 		return
 	}
 
-	userInfos, err := mp.UserModel.UserInfosByEmails(chatData.ParticipantEmails)
+	userInfos, err := mp.UserModel.UserInfosByEmails(reqData.ParticipantEmails)
 	if err != nil {
 		log.Printf("Error checking if user emails exist: %v", err)
 		responseMessage := &Response{
-			Type:  USER_CREATE_CHAT_RESPONSE,
+			Type:  CREATE_CHAT_RESPONSE,
 			Data:  nil,
 			Error: ErrUserDoesNotExist.Error(),
 		}
@@ -161,11 +118,11 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 	// TO DO: check if set of users already in a chat
 
 	// Create chat in database
-	chat, err := mp.ChatModel.InsertChat(chatData.Name)
+	chat, err := mp.ChatModel.InsertChat(reqData.Name)
 	if err != nil {
 		log.Printf("Error creating chat: %v", err)
 		responseMessage := &Response{
-			Type:  USER_CREATE_CHAT_RESPONSE,
+			Type:  CREATE_CHAT_RESPONSE,
 			Data:  nil,
 			Error: ErrCannotCreateChat.Error(),
 		}
@@ -182,7 +139,7 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 	if err != nil {
 		log.Printf("Error adding participants to chat: %v", err)
 		responseMessage := &Response{
-			Type:  USER_CREATE_CHAT_RESPONSE,
+			Type:  CREATE_CHAT_RESPONSE,
 			Data:  nil,
 			Error: ErrCannotAddParticipantsToChat.Error(),
 		}
@@ -201,7 +158,7 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 			Name:  userInfo.Name,
 		})
 	}
-	responseData := &CreateChatResponse{
+	responseData := CreateChatResponse{
 		Id:        chat.Id.String(),
 		Name:      chat.Name,
 		UpdatedAt: chat.UpdatedAt,
@@ -209,8 +166,8 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 	}
 
 	responseMessage := &Response{
-		Type:  USER_CREATE_CHAT_RESPONSE,
-		Data:  responseData,
+		Type:  CREATE_CHAT_RESPONSE,
+		Data:  getJsonRawMessage(responseData),
 		Error: "",
 	}
 
@@ -219,21 +176,25 @@ func (mp *MessageProcessor) handleCreateChatRequest(senderId uuid.UUID, message 
 	}
 }
 
-func (mp *MessageProcessor) handleSendMessageRequest(senderId uuid.UUID, request *Request) {
-	messageData, ok := request.Data.(*ClientSendMessageRequest)
-	if !ok {
-		log.Printf("Invalid message data")
-		return
+func getJsonRawMessage(data any) json.RawMessage {
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("Error marshalling data: %v", err)
+		return nil
 	}
-	chatId := uuid.MustParse(messageData.ChatID)
-	content := messageData.Content
+	return json.RawMessage(jsonData)
+}
+
+func (mp *MessageProcessor) handleSendMessageRequest(senderId uuid.UUID, reqData SendMessageRequest) {
+	chatId := uuid.MustParse(reqData.ChatID)
+	content := reqData.Content
 
 	// get chat by id
 	_, err := mp.ChatModel.GetChat(chatId)
 	if err != nil {
 		log.Printf("Error getting chat: %v", err)
 		responseMessage := &Response{
-			Type:  USER_SEND_MESSAGE_RESPONSE,
+			Type:  SEND_MESSAGE_RESPONSE,
 			Data:  nil,
 			Error: ErrCannotGetChat.Error(),
 		}
@@ -246,7 +207,7 @@ func (mp *MessageProcessor) handleSendMessageRequest(senderId uuid.UUID, request
 	if err != nil {
 		log.Printf("Error saving message: %v", err)
 		responseMessage := &Response{
-			Type:  USER_SEND_MESSAGE_RESPONSE,
+			Type:  SEND_MESSAGE_RESPONSE,
 			Data:  nil,
 			Error: ErrCannotSaveMessage.Error(),
 		}
@@ -264,15 +225,16 @@ func (mp *MessageProcessor) handleSendMessageRequest(senderId uuid.UUID, request
 	for _, member := range members {
 		memberIds = append(memberIds, member.ID)
 	}
+	responseData := SendMessageResponse{
+		ChatID:    chatId.String(),
+		SenderID:  message.SenderID.String(),
+		Content:   message.Content,
+		Timestamp: message.CreatedAt.String(),
+		MessageID: message.ID.String(),
+	}
 	responseMessage := &Response{
-		Type: USER_SEND_MESSAGE_RESPONSE,
-		Data: ClientSendMessageResponse{
-			ChatID:    chatId.String(),
-			SenderID:  message.SenderID.String(),
-			Content:   message.Content,
-			Timestamp: message.CreatedAt.String(),
-			MessageID: message.ID.String(),
-		},
+		Type:  SEND_MESSAGE_RESPONSE,
+		Data:  getJsonRawMessage(responseData),
 		Error: "",
 	}
 
@@ -281,7 +243,7 @@ func (mp *MessageProcessor) handleSendMessageRequest(senderId uuid.UUID, request
 	}
 }
 
-func (mp *MessageProcessor) handleGetChatHistoryRequest(senderId uuid.UUID, message *Request) {
+func (mp *MessageProcessor) handleGetChatHistoryRequest(senderId uuid.UUID, reqData GetChatHistoryRequest) {
 	// messageData, ok := message.Data.(*ClientGetChatHistoryRequest)
 	// if !ok {
 	// 	log.Printf("Invalid message data")
@@ -289,19 +251,8 @@ func (mp *MessageProcessor) handleGetChatHistoryRequest(senderId uuid.UUID, mess
 	// }
 }
 
-func (mp *MessageProcessor) handleGetChatsRequest(senderId uuid.UUID, message *Request) {
-	request, ok := message.Data.(*GetChatsRequest)
-	if !ok {
-		log.Printf("Invalid message data")
-		responseMessage := &Response{
-			Type:  USER_GET_CHATS_RESPONSE,
-			Data:  nil,
-			Error: ErrUnknownRequestType.Error(),
-		}
-		mp.MessageSender.SendToUser(senderId, responseMessage)
-		return
-	}
-	modelChats, err := mp.ChatModel.GetChatsByUserID(senderId, request.CursorUpdatedAt, request.ChatID, request.Limit)
+func (mp *MessageProcessor) handleGetChatsRequest(senderId uuid.UUID, reqData GetChatsRequest) {
+	modelChats, err := mp.ChatModel.GetChatsByUserID(senderId, reqData.CursorUpdatedAt, reqData.ChatID, reqData.Limit)
 	if err != nil {
 		log.Printf("Error getting chats: %v", err)
 		return
@@ -311,9 +262,12 @@ func (mp *MessageProcessor) handleGetChatsRequest(senderId uuid.UUID, message *R
 		chats = append(chats, chatConvert(*modelChat))
 	}
 
+	responseData := GetChatsResponse{
+		Chats: chats,
+	}
 	responseMessage := &Response{
-		Type:  USER_GET_CHATS_RESPONSE,
-		Data:  GetChatsResponse{Chats: chats},
+		Type:  GET_CHATS_RESPONSE,
+		Data:  getJsonRawMessage(responseData),
 		Error: "",
 	}
 	mp.MessageSender.SendToUser(senderId, responseMessage)

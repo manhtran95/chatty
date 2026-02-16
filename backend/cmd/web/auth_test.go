@@ -13,18 +13,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	testUserName     = "John Doe"
-	testUserEmail    = "john@example.com"
-	testUserPassword = "password123"
-)
-
 func TestUserSignup(t *testing.T) {
 	cleanDB(t, db)
 
 	cleanup, server, _ := setupTestAppWithServer(t)
 	defer cleanup()
 	defer server.Close()
+
+	testUserName := "John Doe"
+	testUserEmail := "john@example.com"
+	testUserPassword := "password123"
 
 	// Sign up a user
 	resp := signupUser(t, server, testUserName, testUserEmail, testUserPassword)
@@ -54,6 +52,10 @@ func TestUserLogin(t *testing.T) {
 	cleanup, server, _ := setupTestAppWithServer(t)
 	defer cleanup()
 	defer server.Close()
+
+	testUserName := "John Doe"
+	testUserEmail := "john@example.com"
+	testUserPassword := "password123"
 
 	// First, sign up a user
 	signupResp := signupUser(t, server, testUserName, testUserEmail, testUserPassword)
@@ -105,12 +107,13 @@ func TestUserLoginInvalidCredentials(t *testing.T) {
 
 	// First, sign up a user with a unique email
 	testEmail := "invalid-cred-test@example.com"
-	signupResp := signupUser(t, server, "Invalid Cred Test User", testEmail, testUserPassword)
-	signupResp.Body.Close()
-	assert.Equal(t, http.StatusOK, signupResp.StatusCode)
+	testUserName := "Invalid Cred Test User"
+	testUserPassword := "password123"
+
+	signupUserSuccess(t, server, testUserName, testEmail, testUserPassword)
 
 	// Try to login with wrong password
-	loginResp := loginUser(t, server, testEmail, "wrongpassword")
+	loginResp := loginUser(t, server, testEmail, "wrong-password")
 	defer loginResp.Body.Close()
 
 	// Should get 422 Unprocessable Entity
@@ -159,6 +162,16 @@ func signupUser(t *testing.T, server *httptest.Server, name string, email string
 	}
 
 	return resp
+}
+
+func signupUserSuccess(t *testing.T, server *httptest.Server, name string, email string, password string) *http.Response {
+	t.Helper()
+
+	signupResp := signupUser(t, server, name, email, password)
+	signupResp.Body.Close()
+	assert.Equal(t, http.StatusOK, signupResp.StatusCode)
+
+	return signupResp
 }
 
 func loginUser(t *testing.T, server *httptest.Server, email string, password string) *http.Response {

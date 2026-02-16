@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"github.com/ory/dockertest/v3"
 	"github.com/ory/dockertest/v3/docker"
 	logrus "github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 var db *sql.DB
@@ -176,8 +178,30 @@ func setupTestApp(t *testing.T) (*application, func()) {
 	return app, cleanup
 }
 
-// setupTestAppWithServer creates a test application with HTTP server (no WebSocket connection)
+const (
+	testUser1Email = "test1@example.com"
+	testUser1Name  = "Test User 1"
+	testUser2Email = "test2@example.com"
+	testUser2Name  = "Test User 2"
+	testPassword   = "password123"
+)
+
+// setupTestAppWithServerAndUsers creates a test application with HTTP server (no WebSocket connection)
 // Returns cleanup function, HTTP server, and the app
+func setupTestAppWithServerAndUsers(t *testing.T) (func(), *httptest.Server, *application) {
+	t.Helper()
+
+	app, cleanup := setupTestApp(t)
+
+	// Create HTTP test server with the app's routes
+	server := httptest.NewServer(app.routes())
+
+	signupUserSuccess(t, server, testUser1Name, testUser1Email, testPassword)
+	signupUserSuccess(t, server, testUser2Name, testUser2Email, testPassword)
+
+	return cleanup, server, app
+}
+
 func setupTestAppWithServer(t *testing.T) (func(), *httptest.Server, *application) {
 	t.Helper()
 
@@ -187,6 +211,38 @@ func setupTestAppWithServer(t *testing.T) (func(), *httptest.Server, *applicatio
 	server := httptest.NewServer(app.routes())
 
 	return cleanup, server, app
+}
+
+// createChatSuccess creates a chat and returns the chat ID
+func createChatSuccess(t *testing.T, conn *gorilla.Conn) string {
+	t.Helper()
+
+	testChatName := "Test Chat"
+	createChatRequest := fmt.Sprintf(`{
+		"type": "%s",
+		"data": {
+			"name": "%s",
+			"participantEmails": ["%s", "%s"]
+		}
+	}`, messageprocessor.CREATE_CHAT_REQUEST, testChatName, testUser1Email, testUser2Email)
+	writeMessage(t, conn, createChatRequest)
+
+	response := readMessage(t, conn)
+
+	var responseData messageprocessor.CreateChatResponse
+	err := json.Unmarshal(response.Data, &responseData)
+	if err != nil {
+		t.Fatalf("Failed to unmarshal response data: %v", err)
+	}
+
+	assert.Equal(t, messageprocessor.CREATE_CHAT_RESPONSE, response.Type)
+	assert.Equal(t, testChatName, responseData.Name)
+	assert.Equal(t, len(responseData.UserInfos), 2)
+	assert.Equal(t, responseData.UserInfos[0].Email, testUser1Email)
+	assert.Equal(t, responseData.UserInfos[0].Name, testUser1Name)
+	assert.Equal(t, responseData.UserInfos[1].Email, testUser2Email)
+	assert.Equal(t, responseData.UserInfos[1].Name, testUser2Name)
+	return responseData.Id
 }
 
 func setupTestAppFull(t *testing.T) (func(), *httptest.Server, *gorilla.Conn, string) {
