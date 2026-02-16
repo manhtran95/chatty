@@ -44,10 +44,10 @@ type RefreshResponse struct {
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 	// Declare an zero-valued instance of our userSignupForm struct.
-	var form userSignupForm
+	var signupForm userSignupForm
 	var signupResponse SignupResponse
 	// Parse the form data into the userSignupForm struct.
-	err := app.decodePostForm(r, &form)
+	err := app.decodePostForm(r, &signupForm)
 	if err != nil {
 		app.writeJSON(w, http.StatusBadRequest, response.APIResponse[any]{
 			Data:    nil,
@@ -58,16 +58,18 @@ func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Validate the form contents using our helper functions.
-	form.CheckField(validator.NotBlank(form.Name), "name", "This field cannot be blank")
-	form.CheckField(validator.NotBlank(form.Email), "email", "This field cannot be blank")
-	form.CheckField(validator.Matches(form.Email, validator.EmailRX), "email", "This field must be a valid email address")
-	form.CheckField(validator.NotBlank(form.Password), "password", "This field cannot be blank")
+	signupForm.CheckField(validator.NotBlank(signupForm.Name), "name", "This field cannot be blank")
+	signupForm.CheckField(validator.NotBlank(signupForm.Email), "email", "This field cannot be blank")
+	signupForm.CheckField(validator.Matches(signupForm.Email, validator.EmailRX), "email", "This field must be a valid email address")
+	signupForm.CheckField(validator.NotBlank(signupForm.Password), "password", "This field cannot be blank")
 	passLen, _ := strconv.Atoi(os.Getenv("PASSWORD_MIN_LENGTH"))
-	form.CheckField(validator.MinChars(form.Password, passLen), "password", fmt.Sprintf("This field must be at least %d characters long", passLen))
+	signupForm.CheckField(validator.MinChars(signupForm.Password, passLen), "password", fmt.Sprintf("This field must be at least %d characters long", passLen))
+	
+	signupResponse.Form = signupForm
+	
 	// If there are any errors, redisplay the signup form along with a 422
 	// status code.
-	if !form.Valid() {
-		signupResponse.Form = form
+	if !signupForm.Valid() {
 		signupResponse.Redirect = false
 		res := response.APIResponse[SignupResponse]{
 			Data:    signupResponse,
@@ -79,11 +81,10 @@ func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
 	}
 	// Try to create a new user record in the database. If the email already
 	// exists then add an error message to the form and re-display it.
-	err = app.users.Insert(form.Name, form.Email, form.Password)
+	err = app.users.Insert(signupForm.Name, signupForm.Email, signupForm.Password)
 	if err != nil {
 		if errors.Is(err, models.ErrDuplicateEmail) {
-			form.AddFieldError("email", "Email address is already in use")
-			signupResponse.Form = form
+			signupForm.AddFieldError("email", "Email address is already in use")
 			signupResponse.Redirect = false
 			res := response.APIResponse[SignupResponse]{
 				Data:    signupResponse,
